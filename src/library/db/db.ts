@@ -11,7 +11,6 @@ import { IDbCollectionFactory } from './db-collection-factory';
 export class Db {
     private _collectionUpdaters: Map<string, IDbCollectionUpdater> = new Map();
     private _connected: boolean = false;
-    private _identity: any = null;
 
     constructor(
         private _contentAccessor: IContentAccessor,
@@ -23,9 +22,11 @@ export class Db {
 
     async collection(name: string, options: Partial<ICollectionOptions> = {}): Promise<IDbCollection> {
 
+        const selfIdentity = await this._signingProvider.id();
+
         const sub = collectionJson => {
             const collection: ICollection = JSON.parse(collectionJson.data) as ICollection;
-            if (collection.senderIdentity == this._identity.id || !collection.address)
+            if (collection.senderIdentity == selfIdentity || !collection.address)
                 return;
             const updater = this._collectionUpdaters.get(collection.address);
             if (updater)
