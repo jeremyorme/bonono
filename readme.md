@@ -15,6 +15,11 @@ Why is it called Bonono? Simple, Opple sounded too silly.
 
 See the [Bonono DB component reference](src/components/bonono-db/readme.md)
 
+## Tutorials
+
+Getting started:
+* [Bonono with React](doc/react/getting-started.md)
+
 ## Development
 
 To develop Bonono, clone this repo to a new directory:
