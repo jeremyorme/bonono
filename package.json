@@ -29,15 +29,18 @@
     "dependencies": {
         "@stencil/core": "^2.13.0",
         "ajv": "^8.11.0",
+        "base58-js": "^1.0.4",
         "ipfs": "^0.61.0",
         "ipfs-pubsub-peer-monitor": "^0.0.10",
+        "noble-ed25519": "^1.2.6",
         "orbit-db-io": "^1.0.2"
     },
     "devDependencies": {
         "@types/jest": "^27.0.3",
         "jest": "^27.4.5",
         "jest-cli": "^27.4.5",
-        "puppeteer": "^10.0.0"
+        "puppeteer": "^10.0.0",
+        "rollup-plugin-node-polyfills": "^0.2.1"
     },
     "license": "MIT"
 }
