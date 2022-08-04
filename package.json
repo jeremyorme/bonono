@@ -1,6 +1,6 @@
 {
     "name": "bonono",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "Peer-to-peer (p2p) replicating data store",
     "main": "dist/index.cjs.js",
     "module": "dist/index.js",
