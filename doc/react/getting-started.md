@@ -35,14 +35,13 @@ npm start
 The newly created React project should have an `index.html` file in `bonono-app/public/`. Add the following script tag to the `<head>` section:
 
 ```html
-<script type='module' src='https://unpkg.com/bonono@0.0.2/dist/bonono/bonono.esm.js'></script>
+<script type='module' src='https://unpkg.com/bonono@0.0.3/dist/bonono/bonono.esm.js'></script>
 ```
 
-Bonono depends on [JS-IPFS](https://js.ipfs.io) and [Orbit DB](https://orbitdb.org) so it is necessary to include them also:
+Bonono depends on [JS-IPFS](https://js.ipfs.io) so it is also necessary to add the following script tag:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/ipfs@0.61.0/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/orbit-db@0.28.1/dist/orbitdb.min.js"></script>
 ```
 
 ## Connect and open a data store with DbClient
