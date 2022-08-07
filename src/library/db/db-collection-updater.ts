@@ -7,8 +7,10 @@ import { IEntry } from "../public-data/entry";
 import { byClock, byOwnerIdentity } from "../util/sort-comparators";
 import { mergeArrays } from "../util/arrays";
 import { IContentAccessor } from "../services/content-accessor";
-import { ISigningProvider } from "../services/signing-provider";
+import { ICryptoProvider } from "../services/crypto-provider";
 import { ILocalStorage } from "../services/local-storage";
+import { AccessRights } from "../private-data/access-rights";
+import { IObject } from "../public-data/object";
 
 export interface IDbCollectionUpdater {
     init(name: string): Promise<boolean>;
@@ -16,6 +18,7 @@ export interface IDbCollectionUpdater {
     add(objs: any[]): Promise<void>;
     onPeerJoined(_peer: string);
     onUpdated(callback: () => void);
+    canRead(): boolean;
     canWrite(): boolean;
     address(): string;
     index(): Map<string, any>;
@@ -25,11 +28,11 @@ export interface IDbCollectionUpdater {
 export class DbCollectionUpdater implements IDbCollectionUpdater {
     private _options: ICollectionOptions;
     private _address: string;
-    private _ownerIdentity: string;
+    private _manifest: ICollectionManifest;
     private _index: Map<string, any> = new Map();
     private _clock: number = 0;
     private _entryBlockLists: Map<string, IEntryBlockList> = new Map();
-    private _manifestCid: string;
+    private _collectionCid: string;
     private _updatedCallbacks: Array<() => void> = [];
     private _addCount: number = 0;
     private _numEntries: number = 0;
@@ -38,7 +41,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     constructor(
         private _contentAccessor: IContentAccessor,
-        private _signingProvider: ISigningProvider,
+        private _cryptoProvider: ICryptoProvider,
         private _localStorage: ILocalStorage,
         private _publish: (ICollection) => void,
         options: Partial<ICollectionOptions>) {
@@ -48,21 +51,25 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async init(name: string): Promise<boolean> {
 
-        this._selfIdentity = await this._signingProvider.id();
-        this._selfPublicKey = await this._signingProvider.publicKey();
+        this._selfIdentity = await this._cryptoProvider.id();
+        this._selfPublicKey = await this._cryptoProvider.publicKey();
 
-        var manifest;
+        var manifest: ICollectionManifest | null;
         if (this._options.address) {
             this._address = this._options.address;
             manifest = await this._contentAccessor.getObject<ICollectionManifest>(this._address);
-            if (!isCollectionManifestValid(manifest, this._address))
+            if (manifest == null || !isCollectionManifestValid(manifest, this._address))
                 return false;
-            this._ownerIdentity = manifest.ownerIdentity;
+            this._manifest = manifest;
         }
         else {
-            this._ownerIdentity = this._options.isPublic ? '*' : this._selfIdentity;
-            manifest = { name, ownerIdentity: this._ownerIdentity };
-            this._address = await this._contentAccessor.putObject(manifest);
+            this._manifest = {
+                name,
+                creatorIdentity: this._selfIdentity,
+                publicAccess: this._options.publicAccess,
+                entryBlockSize: this._options.entryBlockSize
+            };
+            this._address = await this._contentAccessor.putObject(this._manifest);
         }
 
         const collectionCid = this._localStorage.getItem('/db/' + this._address);
@@ -79,7 +86,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async merge(collection: ICollection): Promise<void> {
 
-        if (!await isCollectionValid(collection, this._signingProvider, this._ownerIdentity, this._address))
+        if (!await isCollectionValid(collection, this._cryptoProvider, this._manifest, this._address))
             return;
 
         // Determine which entry block lists are new
@@ -134,8 +141,19 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             this._clock = allEntries.slice(-1)[0].clock;
 
         this._index.clear();
-        for (const entry of allEntries)
-            this._index.set(entry.value._id, entry.value);
+        if (this._manifest.publicAccess != AccessRights.None) {
+            for (const entry of allEntries)
+                this._index.set(entry.value._id, entry.value);
+        }
+        else {
+            for (const entry of allEntries) {
+                const obj = {
+                    _id: await this._cryptoProvider.decrypt(entry.value._id),
+                    ...JSON.parse(await this._cryptoProvider.decrypt(entry.value['payload']))
+                };
+                this._index.set(obj._id, obj);
+            }
+        }
     }
 
     private async _updateCollectionCid(): Promise<boolean> {
@@ -148,11 +166,11 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         const newCollectionCid = await this._contentAccessor.putObject(collection);
 
-        if (newCollectionCid == this._manifestCid)
+        if (newCollectionCid == this._collectionCid)
             return false;
 
-        this._manifestCid = newCollectionCid;
-        this._localStorage.setItem('/db/' + this._address, this._manifestCid);
+        this._collectionCid = newCollectionCid;
+        this._localStorage.setItem('/db/' + this._address, this._collectionCid);
         this._publish(collection);
         for (const cb of this._updatedCallbacks)
             cb();
@@ -193,8 +211,22 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             lastBlock = maybeLastBlock;
         }
 
+        const removeId = (obj: IObject): any => {
+            const clone: any = { ...obj };
+            delete clone._id;
+            return clone;
+        }
+
+        const encrypt = async (obj: IObject): Promise<any> => {
+            return this._manifest.publicAccess == AccessRights.None ? {
+                _id: await this._cryptoProvider.encrypt(obj._id),
+                payload: await this._cryptoProvider.encrypt(JSON.stringify(removeId(obj)))
+            } : obj;
+        }
+
         const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
-        let newBlockEntries = [...lastEntries, ...objs.map(obj => ({ value: obj, clock: ++this._clock }))];
+        const encryptedObjs = await Promise.all(objs.map(obj => encrypt(obj)));
+        let newBlockEntries = [...lastEntries, ...encryptedObjs.map(obj => ({ value: obj, clock: ++this._clock }))];
 
         const newBlocks: IEntryBlock[] = [];
         while (newBlockEntries.length > 0) {
@@ -233,7 +265,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         myEntryBlockList.clock = this._clock;
         myEntryBlockList.signature = '';
-        myEntryBlockList.signature = await this._signingProvider.sign(myEntryBlockList);
+        myEntryBlockList.signature = await this._cryptoProvider.sign(myEntryBlockList);
 
         await this._updateCollectionCid();
     }
@@ -250,7 +282,15 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     onUpdated(callback: () => void) { this._updatedCallbacks.push(callback); }
 
-    canWrite(): boolean { return this._selfIdentity == this._ownerIdentity || this._ownerIdentity == '*'; }
+    canRead(): boolean {
+        return this._selfIdentity == this._manifest.creatorIdentity ||
+            this._manifest.publicAccess != AccessRights.None;
+    }
+
+    canWrite(): boolean {
+        return this._selfIdentity == this._manifest.creatorIdentity ||
+            this._manifest.publicAccess == AccessRights.ReadWrite;
+    }
 
     address(): string { return this._address; }
 

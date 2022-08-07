@@ -1,10 +1,10 @@
-import { ISigningProvider } from "../../library/services/signing-provider";
+import { ICryptoProvider } from "../../library/services/crypto-provider";
 import { cyrb53hex } from "./cyrb53";
 
 /**
- * Mocks a signing provider in a totally insecure way for testing
+ * Mocks a crypto provider in a totally insecure way for testing
  */
-export class MockSigningProvider implements ISigningProvider {
+export class MockCryptoProvider implements ICryptoProvider {
     private _publicKey: string;
 
     constructor(private _id: string) {
@@ -29,5 +29,13 @@ export class MockSigningProvider implements ISigningProvider {
 
     async publicKey(): Promise<string> {
         return this._publicKey;
+    }
+
+    async encrypt(plainText: string): Promise<string> {
+        return plainText.split('').reverse().join('');
+    }
+
+    async decrypt(cipherText: string): Promise<string> {
+        return cipherText.split('').reverse().join('');
     }
 }

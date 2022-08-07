@@ -1,16 +1,21 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
+import { AccessRights } from './access-rights';
 
 const ajv = new Ajv();
 
 export interface ICollectionManifest {
     name: string;
-    ownerIdentity: string;
+    creatorIdentity: string;
+    publicAccess: AccessRights;
+    entryBlockSize: number;
 }
 
 const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
     properties: {
         name: { type: 'string' },
-        ownerIdentity: { type: 'string' }
+        creatorIdentity: { type: 'string' },
+        publicAccess: { enum: [AccessRights.None, AccessRights.Read, AccessRights.ReadWrite] },
+        entryBlockSize: { type: 'uint32' }
     }
 };
 

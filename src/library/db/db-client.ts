@@ -1,6 +1,6 @@
 import { IpfsContentAccessor } from '../services/ipfs-content-accessor';
 import { IpfsPubSub } from '../services/ipfs-pub-sub';
-import { KeyPairSigningProvider } from '../services/key-pair-signing-provider';
+import { KeyPairCryptoProvider } from '../services/key-pair-crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { WindowLocalStorage } from '../services/window-local-storage';
 import { Db } from './db';
@@ -28,7 +28,7 @@ export class DbClient {
         const swarmAddrs = isLocal ? [] : this._address.split(';');
         if (!this._window['_ipfs']) {
             this._window['_ipfs'] = await this._window['Ipfs'].create({
-                init: { privateKey: new KeyPairSigningProvider(this._localStorage).privateKey() },
+                init: { privateKey: new KeyPairCryptoProvider(this._localStorage).privateKey() },
                 preload: { enabled: false },
                 EXPERIMENTAL: { pubsub: true },
                 config: {
@@ -51,7 +51,7 @@ export class DbClient {
             new Db(
                 new IpfsContentAccessor(ipfs, 10000),
                 new IpfsPubSub(ipfs),
-                new KeyPairSigningProvider(this._localStorage),
+                new KeyPairCryptoProvider(this._localStorage),
                 this._localStorage,
                 new DbCollectionFactory(),
                 name) : null;

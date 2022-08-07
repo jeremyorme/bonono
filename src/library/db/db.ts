@@ -4,7 +4,7 @@ import { ICollectionOptions } from '../private-data/collection-options';
 import { ICollection } from '../public-data/collection';
 import { IDbCollection } from './db-collection';
 import { IDbCollectionUpdater } from './db-collection-updater';
-import { ISigningProvider } from '../services/signing-provider';
+import { ICryptoProvider } from '../services/crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { IDbCollectionFactory } from './db-collection-factory';
 
@@ -15,14 +15,14 @@ export class Db {
     constructor(
         private _contentAccessor: IContentAccessor,
         private _pubsub: IPubSub,
-        private _signingProvider: ISigningProvider,
+        private _cryptoProvider: ICryptoProvider,
         private _localStorage: ILocalStorage,
         private _dbCollectionFactory: IDbCollectionFactory,
         private _name: string) { }
 
     async collection(name: string, options: Partial<ICollectionOptions> = {}): Promise<IDbCollection> {
 
-        const selfIdentity = await this._signingProvider.id();
+        const selfIdentity = await this._cryptoProvider.id();
 
         const sub = collectionJson => {
             const collection: ICollection = JSON.parse(collectionJson.data) as ICollection;
@@ -48,7 +48,7 @@ export class Db {
         };
 
         const collectionUpdater = this._dbCollectionFactory.createCollectionUpdater(
-            this._contentAccessor, this._signingProvider, this._localStorage, pub, options);
+            this._contentAccessor, this._cryptoProvider, this._localStorage, pub, options);
         await collectionUpdater.init(this._name + '/' + name);
         this._collectionUpdaters.set(collectionUpdater.address(), collectionUpdater);
 

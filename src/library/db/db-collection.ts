@@ -7,6 +7,7 @@ export interface IDbCollection {
     findOne(query: any): any;
     get all(): IterableIterator<[string, any]>;
     onUpdated(callback: () => void);
+    canRead(): boolean;
     canWrite(): boolean;
     address(): string;
     numEntries(): number;
@@ -36,6 +37,8 @@ export class DbCollection implements IDbCollection {
     }
 
     onUpdated(callback: () => void) { this._updater.onUpdated(callback); }
+
+    canRead(): boolean { return this._updater.canRead(); }
 
     canWrite(): boolean { return this._updater.canWrite(); }
 

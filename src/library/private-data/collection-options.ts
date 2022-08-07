@@ -1,17 +1,18 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
+import { AccessRights } from './access-rights';
 
 const ajv = new Ajv();
 
 export interface ICollectionOptions {
     address: string;
-    isPublic: boolean;
+    publicAccess: AccessRights;
     entryBlockSize: number;
     compactThreshold: number;
 }
 
 export const defaultCollectionOptions: ICollectionOptions = {
     address: '',
-    isPublic: false,
+    publicAccess: AccessRights.Read,
     entryBlockSize: 16,
     compactThreshold: 128
 };
@@ -19,7 +20,7 @@ export const defaultCollectionOptions: ICollectionOptions = {
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
     properties: {
         address: { type: 'string' },
-        isPublic: { type: 'boolean' },
+        publicAccess: { enum: [AccessRights.None, AccessRights.Read, AccessRights.ReadWrite] },
         entryBlockSize: { type: 'uint32' },
         compactThreshold: { type: 'uint32' }
     }

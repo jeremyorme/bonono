@@ -1,5 +1,6 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
-import { ISigningProvider } from '../services/signing-provider';
+import { ICollectionManifest } from '../private-data/collection-manifest';
+import { ICryptoProvider } from '../services/crypto-provider';
 import { IEntryBlockList, entryBlockListSchema, isEntryBlockListValid } from './entry-block-list';
 
 const ajv = new Ajv();
@@ -22,7 +23,7 @@ const collectionSchema: JTDSchemaType<ICollection> = {
 
 export const validateCollection = ajv.compile(collectionSchema);
 
-export async function isCollectionValid(collection: ICollection | null, signingProvider: ISigningProvider, ownerIdentity: string, address: string) {
+export async function isCollectionValid(collection: ICollection | null, cryptoProvider: ICryptoProvider, manifest: ICollectionManifest, address: string) {
     // check_exists(ICollection)
     if (!collection) {
         console.log('[Db] ERROR: Collection structure not found (address = ' + address + ')');
@@ -36,7 +37,7 @@ export async function isCollectionValid(collection: ICollection | null, signingP
     }
 
     const blocksValid = await Promise.all(collection.entryBlockLists.map(
-        entryBlockList => isEntryBlockListValid(entryBlockList, signingProvider, ownerIdentity, address)));
+        entryBlockList => isEntryBlockListValid(entryBlockList, cryptoProvider, manifest, address)));
 
     return blocksValid.every(b => b);
 }

@@ -1,7 +1,8 @@
-import { ISigningProvider } from "./signing-provider";
+import { ICryptoProvider } from "./crypto-provider";
 import * as ed from '@noble/ed25519';
 import { binary_to_base58, base58_to_binary } from 'base58-js';
 import { ILocalStorage } from "./local-storage";
+import * as CryptoJS from 'crypto-js';
 
 function stringToHex(str: string): string {
     const encoder = new TextEncoder();
@@ -9,11 +10,12 @@ function stringToHex(str: string): string {
     return ed.utils.bytesToHex(objBytes);
 }
 
-export class KeyPairSigningProvider implements ISigningProvider {
+export class KeyPairCryptoProvider implements ICryptoProvider {
 
     private _privateKey: string;
     private _privateKeyHex: string;
     private _publicKey: string;
+    private _passPhrase: string;
 
     constructor(localStorage: ILocalStorage) {
         let privateKey = localStorage.getItem('private-key');
@@ -51,5 +53,21 @@ export class KeyPairSigningProvider implements ISigningProvider {
             this._publicKey = binary_to_base58(await ed.getPublicKey(this._privateKeyHex));
 
         return this._publicKey;
+    }
+
+    private async _generatePassPhrase(): Promise<string> {
+        if (!this._passPhrase) {
+            const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
+            this._passPhrase = await binary_to_base58(await ed.getSharedSecret(this._privateKeyHex, publicKeyHex));
+        }
+        return this._passPhrase;
+    }
+
+    async encrypt(plainText: string): Promise<string> {
+        return CryptoJS.AES.encrypt(CryptoJS.enc.Latin1.parse(plainText), await this._generatePassPhrase()).toString();
+    }
+
+    async decrypt(cipherText: string): Promise<string> {
+        return CryptoJS.enc.Latin1.stringify(CryptoJS.AES.decrypt(cipherText, await this._generatePassPhrase()));
     }
 }
