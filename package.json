@@ -19,7 +19,7 @@
         "loader/"
     ],
     "scripts": {
-        "build": "stencil build --docs",
+        "build": "stencil build --docs & typedoc --plugin typedoc-plugin-markdown --plugin typedoc-plugin-merge-modules",
         "start": "stencil build --dev --watch --serve",
         "test": "stencil test --spec --e2e",
         "test.watch": "stencil test --spec --e2e --watchAll",
@@ -42,7 +42,10 @@
         "jest": "^27.4.5",
         "jest-cli": "^27.4.5",
         "puppeteer": "^10.0.0",
-        "rollup-plugin-node-polyfills": "^0.2.1"
+        "rollup-plugin-node-polyfills": "^0.2.1",
+        "typedoc": "^0.23.10",
+        "typedoc-plugin-markdown": "^3.13.4",
+        "typedoc-plugin-merge-modules": "^4.0.1"
     },
     "license": "MIT"
 }

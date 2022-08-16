@@ -3,13 +3,40 @@ import { IpfsPubSub } from '../services/ipfs-pub-sub';
 import { KeyPairCryptoProvider } from '../services/key-pair-crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { WindowLocalStorage } from '../services/window-local-storage';
-import { Db } from './db';
+import { Db, IDb } from './db';
 import { DbCollectionFactory } from './db-collection-factory';
 
 /**
- * Manages connection and opening databases
+ * Handles the connection to IPFS and opening databases.
  */
-export class DbClient {
+export interface IDbClient {
+    /**
+     * Connect to IPFS.
+     * @returns A promise indicating whether connection succeeded
+     */
+    connect(): Promise<boolean>;
+
+    /**
+     * Close the IPFS connection.
+     * @returns A promise that resolves on completion
+     */
+    close(): Promise<void>;
+
+    /**
+     * Opens a named database.
+     * @param name Unique database name
+     * @returns Database interface
+     */
+    db(name: string): Promise<IDb | null>;
+
+    /**
+     * Address for connecting to IPFS.
+     * @returns The address
+     */
+    address(): string;
+}
+
+export class DbClient implements IDbClient {
     private _localStorage: ILocalStorage;
 
     constructor(
@@ -18,34 +45,36 @@ export class DbClient {
         this._localStorage = new WindowLocalStorage();
     }
 
-    async connect() {
+    async connect(): Promise<boolean> {
         if (!this._window || !this._window['Ipfs']) {
             console.error('Unable to locate IPFS');
-            return;
+            return false;
         }
 
         const isLocal = !this._address || this._address == "local";
         const swarmAddrs = isLocal ? [] : this._address.split(';');
-        if (!this._window['_ipfs']) {
-            this._window['_ipfs'] = await this._window['Ipfs'].create({
-                init: { privateKey: new KeyPairCryptoProvider(this._localStorage).privateKey() },
-                preload: { enabled: false },
-                EXPERIMENTAL: { pubsub: true },
-                config: {
-                    Addresses: { Swarm: swarmAddrs },
-                }
-            });
-        }
+        if (this._window['_ipfs'])
+            return true;
+
+        this._window['_ipfs'] = await this._window['Ipfs'].create({
+            init: { privateKey: new KeyPairCryptoProvider(this._localStorage).privateKey() },
+            preload: { enabled: false },
+            EXPERIMENTAL: { pubsub: true },
+            config: {
+                Addresses: { Swarm: swarmAddrs },
+            }
+        });
+        return !!this._window['_ipfs'];
     }
 
-    async close() {
+    async close(): Promise<void> {
         if (this._window['_ipfs']) {
             await this._window['_ipfs'].stop();
             delete this._window['_ipfs'];
         }
     }
 
-    async db(name: string): Promise<Db | null> {
+    async db(name: string): Promise<IDb | null> {
         const ipfs = this._window['_ipfs'];
         return ipfs ?
             new Db(

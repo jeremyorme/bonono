@@ -1,0 +1,21 @@
+{
+    "allReflectionsHaveOwnDocument": true,
+    "cleanOutputDir": false,
+    "githubPages": false,
+    "name": "bonono",
+    "out": "doc/api",
+    "readme": "none",
+    "excludeExternals": true,
+    "excludeNotDocumented": true,
+    "externalPattern": "**/node_modules/**",
+    "disableSources": true,
+    "preserveWatchOutput": true,
+    "compilerOptions": {
+        "skipLibCheck": true
+    },
+    "mergeModulesRenameDefaults": true,
+    "entryPointStrategy": "expand",
+    "entryPoints": [
+        "./src/library/"
+    ]
+}

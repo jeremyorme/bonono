@@ -1,5 +1,5 @@
 import { Component, Event, EventEmitter, Prop, h } from '@stencil/core';
-import { DbClient } from '../../library/db/db-client';
+import { DbClient, IDbClient } from '../../library/db/db-client';
 
 @Component({
     tag: 'bonono-db',
@@ -15,7 +15,7 @@ export class BononoDb {
     /**
      * Produces DbClient
      */
-    @Event() dbClient: EventEmitter<DbClient>;
+    @Event() dbClient: EventEmitter<IDbClient>;
 
     componentDidLoad() {
         this.dbClient.emit(new DbClient(this.address, window));

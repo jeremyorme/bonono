@@ -1,6 +1,6 @@
 # bonono-db
 
-
+See the [Bonono API](../../../doc/api/README.md)
 
 <!-- Auto Generated Below -->
 
@@ -14,9 +14,9 @@
 
 ## Events
 
-| Event      | Description       | Type                    |
-| ---------- | ----------------- | ----------------------- |
-| `dbClient` | Produces DbClient | `CustomEvent<DbClient>` |
+| Event      | Description       | Type                     |
+| ---------- | ----------------- | ------------------------ |
+| `dbClient` | Produces DbClient | `CustomEvent<IDbClient>` |
 
 
 ----------------------------------------------

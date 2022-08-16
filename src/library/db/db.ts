@@ -8,7 +8,27 @@ import { ICryptoProvider } from '../services/crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { IDbCollectionFactory } from './db-collection-factory';
 
-export class Db {
+/**
+ * Provides access to a named database.
+ */
+export interface IDb {
+    /**
+     * Creates/opens a named collection.
+     * @param name Collection name
+     * @returns Promise resolving to a collection interface
+     */
+    collection(name: string): Promise<IDbCollection>;
+
+    /**
+     * Creates/opens a named collection with the specified options.
+     * @param name Collection name
+     * @param options Collection options
+     * @returns Promise resolving to a collection interface
+     */
+    collection(name: string, options: Partial<ICollectionOptions>): Promise<IDbCollection>;
+}
+
+export class Db implements IDb {
     private _collectionUpdaters: Map<string, IDbCollectionUpdater> = new Map();
     private _connected: boolean = false;
 

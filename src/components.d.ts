@@ -5,7 +5,7 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { DbClient } from "./library/db/db-client";
+import { IDbClient } from "./library/db/db-client";
 export namespace Components {
     interface BononoDb {
         /**
@@ -38,7 +38,7 @@ declare namespace LocalJSX {
         /**
           * Produces DbClient
          */
-        "onDbClient"?: (event: BononoDbCustomEvent<DbClient>) => void;
+        "onDbClient"?: (event: BononoDbCustomEvent<IDbClient>) => void;
     }
     interface IntrinsicElements {
         "bonono-db": BononoDb;

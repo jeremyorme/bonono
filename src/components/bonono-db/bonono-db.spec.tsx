@@ -1,7 +1,7 @@
 import { newSpecPage } from '@stencil/core/testing';
 import { BononoDb } from './bonono-db';
 import { h } from '@stencil/core';
-import { DbClient } from '../../library/db/db-client';
+import { DbClient, IDbClient } from '../../library/db/db-client';
 
 describe('bonono-db', () => {
     it('renders', async () => {
@@ -21,7 +21,7 @@ describe('bonono-db', () => {
     });
 
     it('produces db client', async () => {
-        let dbClient: DbClient = new DbClient('', null);
+        let dbClient: IDbClient = new DbClient('', null);
 
         await newSpecPage({
             components: [BononoDb],
