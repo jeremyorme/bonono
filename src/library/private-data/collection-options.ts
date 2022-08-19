@@ -1,5 +1,5 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
-import { AccessRights } from './access-rights';
+import { AccessRights, accessRightsSchema } from './access-rights';
 
 const ajv = new Ajv();
 
@@ -47,7 +47,7 @@ export const defaultCollectionOptions: ICollectionOptions = {
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
     properties: {
         address: { type: 'string' },
-        publicAccess: { enum: [AccessRights.None, AccessRights.Read, AccessRights.ReadWrite] },
+        publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' },
         compactThreshold: { type: 'uint32' }
     }

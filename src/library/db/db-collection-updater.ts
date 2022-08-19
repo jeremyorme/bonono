@@ -118,7 +118,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             const isNew = newEntryBlockOwners.has(entryBlockList.ownerIdentity);
 
             // Full validation for new block
-            if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address))
+            if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address, this._manifest, this._selfIdentity))
                 return;
 
             // Basic null-check for old block
@@ -180,93 +180,117 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async add(objs: any[]): Promise<void> {
 
-        if (!this.canWrite())
+        if (!this.canWrite() || objs.length == 0)
             return;
 
-        for (const obj of objs)
-            this._index.set(obj._id, obj);
-        this._numEntries += objs.length;
-
         var myEntryBlockList: IEntryBlockList;
-        const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity);
-        if (maybeMyEntryBlockList) {
-            myEntryBlockList = maybeMyEntryBlockList;
-        }
-        else {
+        if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
+            if (objs.length > 1)
+                return;
+            const obj = objs[0];
+
+            if (obj._id != this._selfIdentity)
+                return;
+
+            this._index.set(obj._id, obj);
+            this._numEntries = 1;
+
+            const entry: IEntry = { value: obj, clock: ++this._clock };
+            const entryBlock: IEntryBlock = { entries: [entry] };
+            const entryBlockCid = await this._contentAccessor.putObject(entryBlock);
             myEntryBlockList = {
                 ownerIdentity: this._selfIdentity,
-                entryBlockCids: [],
+                entryBlockCids: [entryBlockCid],
                 clock: 0,
                 publicKey: this._selfPublicKey,
                 signature: ''
             };
             this._entryBlockLists.set(this._selfIdentity, myEntryBlockList);
         }
+        else {
+            for (const obj of objs)
+                this._index.set(obj._id, obj);
+            this._numEntries += objs.length;
 
-        var lastBlock: IEntryBlock = { entries: [] };
-        if (myEntryBlockList.entryBlockCids.length > 0) {
-            const maybeLastBlock = await this._contentAccessor.getObject<IEntryBlock>(myEntryBlockList.entryBlockCids.slice(-1)[0]);
-            if (!maybeLastBlock)
-                return;
-            lastBlock = maybeLastBlock;
-        }
-
-        const removeId = (obj: IObject): any => {
-            const clone: any = { ...obj };
-            delete clone._id;
-            return clone;
-        }
-
-        const encrypt = async (obj: IObject): Promise<any> => {
-            return this._manifest.publicAccess == AccessRights.None ? {
-                _id: await this._cryptoProvider.encrypt(obj._id),
-                payload: await this._cryptoProvider.encrypt(JSON.stringify(removeId(obj)))
-            } : obj;
-        }
-
-        const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
-        const encryptedObjs = await Promise.all(objs.map(obj => encrypt(obj)));
-        let newBlockEntries = [...lastEntries, ...encryptedObjs.map(obj => ({ value: obj, clock: ++this._clock }))];
-
-        const newBlocks: IEntryBlock[] = [];
-        while (newBlockEntries.length > 0) {
-            newBlocks.push({ entries: newBlockEntries.slice(0, this._options.entryBlockSize) });
-            newBlockEntries = newBlockEntries.slice(this._options.entryBlockSize);
-        }
-
-        const newBlockCids = await Promise.all(newBlocks.map(eb => this._contentAccessor.putObject(eb)));
-        const oldBlockCids = lastEntries.length > 0 ?
-            myEntryBlockList.entryBlockCids.slice(0, myEntryBlockList.entryBlockCids.length - 1) :
-            myEntryBlockList.entryBlockCids;
-
-        myEntryBlockList.entryBlockCids = [...oldBlockCids, ...newBlockCids];
-
-        this._addCount += objs.length;
-        if (this._addCount >= this._options.compactThreshold) {
-            this._addCount %= this._options.compactThreshold;
-            let myEntryBlocks = await Promise.all(myEntryBlockList.entryBlockCids.map(entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
-            const myEntries: IEntry[] = mergeArrays(myEntryBlocks.map(eb => eb ? eb.entries : []));
-
-            const myEffectiveEntryMap: Map<string, IEntry> = new Map();
-            for (const entry of myEntries)
-                myEffectiveEntryMap.set(entry.value._id, entry);
-            const myEffectiveEntries = Array.from(myEffectiveEntryMap.values());
-            this._numEntries += myEffectiveEntries.length - myEntries.length;
-
-            myEntryBlocks = [];
-            let sortedEntries = myEffectiveEntries.sort(byClock);
-            while (sortedEntries.length > 0) {
-                myEntryBlocks.push({ entries: sortedEntries.slice(0, this._options.entryBlockSize) });
-                sortedEntries = sortedEntries.slice(this._options.entryBlockSize);
+            const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity);
+            if (maybeMyEntryBlockList) {
+                myEntryBlockList = maybeMyEntryBlockList;
+            }
+            else {
+                myEntryBlockList = {
+                    ownerIdentity: this._selfIdentity,
+                    entryBlockCids: [],
+                    clock: 0,
+                    publicKey: this._selfPublicKey,
+                    signature: ''
+                };
+                this._entryBlockLists.set(this._selfIdentity, myEntryBlockList);
             }
 
-            myEntryBlockList.entryBlockCids = await Promise.all(myEntryBlocks.map(eb => this._contentAccessor.putObject(eb)));
+            var lastBlock: IEntryBlock = { entries: [] };
+            if (myEntryBlockList.entryBlockCids.length > 0) {
+                const maybeLastBlock = await this._contentAccessor.getObject<IEntryBlock>(myEntryBlockList.entryBlockCids.slice(-1)[0]);
+                if (!maybeLastBlock)
+                    return;
+                lastBlock = maybeLastBlock;
+            }
+
+            const removeId = (obj: IObject): any => {
+                const clone: any = { ...obj };
+                delete clone._id;
+                return clone;
+            }
+
+            const encrypt = async (obj: IObject): Promise<any> => {
+                return this._manifest.publicAccess == AccessRights.None ? {
+                    _id: await this._cryptoProvider.encrypt(obj._id),
+                    payload: await this._cryptoProvider.encrypt(JSON.stringify(removeId(obj)))
+                } : obj;
+            }
+
+            const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
+            const encryptedObjs = await Promise.all(objs.map(obj => encrypt(obj)));
+            let newBlockEntries = [...lastEntries, ...encryptedObjs.map(obj => ({ value: obj, clock: ++this._clock }))];
+
+            const newBlocks: IEntryBlock[] = [];
+            while (newBlockEntries.length > 0) {
+                newBlocks.push({ entries: newBlockEntries.slice(0, this._options.entryBlockSize) });
+                newBlockEntries = newBlockEntries.slice(this._options.entryBlockSize);
+            }
+
+            const newBlockCids = await Promise.all(newBlocks.map(eb => this._contentAccessor.putObject(eb)));
+            const oldBlockCids = lastEntries.length > 0 ?
+                myEntryBlockList.entryBlockCids.slice(0, myEntryBlockList.entryBlockCids.length - 1) :
+                myEntryBlockList.entryBlockCids;
+
+            myEntryBlockList.entryBlockCids = [...oldBlockCids, ...newBlockCids];
+
+            this._addCount += objs.length;
+            if (this._addCount >= this._options.compactThreshold) {
+                this._addCount %= this._options.compactThreshold;
+                let myEntryBlocks = await Promise.all(myEntryBlockList.entryBlockCids.map(entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
+                const myEntries: IEntry[] = mergeArrays(myEntryBlocks.map(eb => eb ? eb.entries : []));
+
+                const myEffectiveEntryMap: Map<string, IEntry> = new Map();
+                for (const entry of myEntries)
+                    myEffectiveEntryMap.set(entry.value._id, entry);
+                const myEffectiveEntries = Array.from(myEffectiveEntryMap.values());
+                this._numEntries += myEffectiveEntries.length - myEntries.length;
+
+                myEntryBlocks = [];
+                let sortedEntries = myEffectiveEntries.sort(byClock);
+                while (sortedEntries.length > 0) {
+                    myEntryBlocks.push({ entries: sortedEntries.slice(0, this._options.entryBlockSize) });
+                    sortedEntries = sortedEntries.slice(this._options.entryBlockSize);
+                }
+
+                myEntryBlockList.entryBlockCids = await Promise.all(myEntryBlocks.map(eb => this._contentAccessor.putObject(eb)));
+            }
         }
 
         myEntryBlockList.clock = this._clock;
         myEntryBlockList.signature = '';
         myEntryBlockList.signature = await this._cryptoProvider.sign(myEntryBlockList);
-
         await this._updateCollectionCid();
     }
 

@@ -511,6 +511,157 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(0);
     });
 
+    it('does add entry to read-any-write-own store when _id matches self identity', async () => {
+        const crypto = new MockCryptoProvider('test-id-1');
+
+        // Create common content storage to share between updaters with different identities
+        const content = new MockContentStorage();
+
+        // Create collection (to be overwritten when add publishes)
+        let collection: ICollection = {
+            senderIdentity: '',
+            address: '',
+            entryBlockLists: [],
+            addCount: NaN
+        };
+
+        // Identity 'test-id-1' creates read-any-write-own store
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto,
+            new MockLocalStorage(), c => { collection = c; },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updater.init('test');
+        const id = await crypto.id();
+        const value = { _id: id, value: 'my-data' }
+
+        // ---
+        await updater.add([value]);
+        // ---
+
+        // Check the entry was not added
+        expect(updater.numEntries()).toEqual(1);
+
+        // Check the index was correctly populated
+        expect(updater.index().get(id))
+            .toHaveProperty('value', 'my-data');
+
+        // Check the collection structure
+        expect(collection).toHaveProperty('senderIdentity', id);
+        expect(collection).toHaveProperty('address', updater.address());
+        expect(collection).toHaveProperty('entryBlockLists');
+        expect(collection).toHaveProperty('addCount', 0);
+        expect(collection.entryBlockLists).toHaveLength(1);
+        const entryBlockList = collection.entryBlockLists[0];
+        expect(entryBlockList).toHaveProperty('ownerIdentity', id);
+        expect(entryBlockList).toHaveProperty('entryBlockCids');
+        expect(entryBlockList).toHaveProperty('clock', 1);
+        expect(entryBlockList).toHaveProperty('publicKey', await crypto.publicKey());
+        expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
+        expect(entryBlockList.entryBlockCids).toHaveLength(1);
+        const entryBlock = await content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
+        expect(entryBlock).toBeTruthy();
+        if (!entryBlock)
+            return;
+        expect(entryBlock).toHaveProperty('entries');
+        expect(entryBlock.entries).toHaveLength(1);
+        expect(entryBlock.entries[0]).toHaveProperty('value', value);
+        expect(entryBlock.entries[0]).toHaveProperty('clock', 1)
+    });
+
+    it('does not exceed one entry in a read-any-write-own store after more than one add', async () => {
+        const crypto = new MockCryptoProvider('test-id-1');
+
+        // Create common content storage to share between updaters with different identities
+        const content = new MockContentStorage();
+
+        // Create collection (to be overwritten when add publishes)
+        let collection: ICollection = {
+            senderIdentity: '',
+            address: '',
+            entryBlockLists: [],
+            addCount: NaN
+        };
+
+        // Identity 'test-id-1' creates read-any-write-own store
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto,
+            new MockLocalStorage(), c => { collection = c; },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updater.init('test');
+        const id = await crypto.id();
+        const value = { _id: id, value: 'my-data' }
+        await updater.add([{ _id: id, value: 'the-first-value' }]);
+
+        // ---
+        await updater.add([value]);
+        // ---
+
+        // Check the entry was not added
+        expect(updater.numEntries()).toEqual(1);
+
+        // Check the index was correctly populated
+        expect(updater.index().get(id))
+            .toHaveProperty('value', 'my-data');
+
+        // Check the collection structure
+        expect(collection).toHaveProperty('senderIdentity', id);
+        expect(collection).toHaveProperty('address', updater.address());
+        expect(collection).toHaveProperty('entryBlockLists');
+        expect(collection).toHaveProperty('addCount', 0);
+        expect(collection.entryBlockLists).toHaveLength(1);
+        const entryBlockList = collection.entryBlockLists[0];
+        expect(entryBlockList).toHaveProperty('ownerIdentity', id);
+        expect(entryBlockList).toHaveProperty('entryBlockCids');
+        expect(entryBlockList).toHaveProperty('clock', 2);
+        expect(entryBlockList).toHaveProperty('publicKey', await crypto.publicKey());
+        expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
+        expect(entryBlockList.entryBlockCids).toHaveLength(1);
+        const entryBlock = await content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
+        expect(entryBlock).toBeTruthy();
+        if (!entryBlock)
+            return;
+        expect(entryBlock).toHaveProperty('entries');
+        expect(entryBlock.entries).toHaveLength(1);
+        expect(entryBlock.entries[0]).toHaveProperty('value', value);
+        expect(entryBlock.entries[0]).toHaveProperty('clock', 2)
+    });
+
+    it('does not add entry to read-any-write-own store when _id does not match self identity', async () => {
+        // Identity 'test-id-1' creates read-any-write-own store
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            new MockContentStorage(), new MockCryptoProvider('test-id-1'),
+            new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updater.init('test');
+
+        // ---
+        await updater.add([{ _id: 'the-key' }]);
+        // ---
+
+        // Check the entry was not added
+        expect(updater.numEntries()).toEqual(0);
+    });
+
+    it('does not add multiple objects to read-any-write-own store', async () => {
+        const crypto = new MockCryptoProvider('test-id-1');
+
+        // Identity 'test-id-1' creates read-any-write-own store
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            new MockContentStorage(), crypto,
+            new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updater.init('test');
+        const id = await crypto.id();
+
+        // ---
+        await updater.add([
+            { _id: id, value: 'my-data' },
+            { _id: id, value: 'my-data-2' }
+        ]);
+        // ---
+
+        // Check no entry was not added
+        expect(updater.numEntries()).toEqual(0);
+    });
+
     //
     // --- merge ---
     //

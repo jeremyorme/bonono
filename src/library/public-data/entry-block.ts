@@ -1,4 +1,5 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
+import { ICollectionManifest } from '../private-data/collection-manifest';
 import { mergeArrays } from '../util/arrays';
 import { IEntry, entrySchema, areEntriesValid } from './entry';
 import { IEntryBlockList } from './entry-block-list';
@@ -17,11 +18,11 @@ const entryBlockSchema: JTDSchemaType<IEntryBlock> = {
 
 const validateEntryBlock = ajv.compile(entryBlockSchema);
 
-export function areEntryBlocksValid(entryBlockList: IEntryBlockList, entryBlocks: (IEntryBlock | null)[], address: string) {
+export function areEntryBlocksValid(entryBlockList: IEntryBlockList, entryBlocks: (IEntryBlock | null)[], address: string, manifest: ICollectionManifest, selfIdentity: string) {
     if (!entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, address)))
         return false;
 
-    if (!areEntriesValid(mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])), entryBlockList))
+    if (!areEntriesValid(mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])), entryBlockList, address, manifest, selfIdentity))
         return false;
 
     // success!
