@@ -1,5 +1,5 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
-import { AccessRights, accessRightsSchema } from './access-rights';
+import { AccessRights, accessRightsSchema } from '../public-data/access-rights';
 
 const ajv = new Ajv();
 

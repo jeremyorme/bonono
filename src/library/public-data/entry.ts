@@ -1,8 +1,8 @@
 import { JTDSchemaType } from 'ajv/dist/jtd';
 import { IObject, objectSchema } from './object';
-import { IEntryBlockList } from './entry-block-list';
-import { ICollectionManifest } from '../private-data/collection-manifest';
-import { AccessRights } from '../private-data/access-rights';
+import { ICollectionManifest } from './collection-manifest';
+import { AccessRights } from './access-rights';
+import { ILogSink } from '../services/log-sink';
 
 export interface IEntry {
     value: IObject;
@@ -16,30 +16,12 @@ export const entrySchema: JTDSchemaType<IEntry> = {
     }
 };
 
-export function areEntriesValid(entries: (IEntry | null)[], entryBlockList: IEntryBlockList, address: string, manifest: ICollectionManifest, selfIdentity: string) {
-    // check_strictly_increasing(IEntry.clock, IEntry.clock)
-    if (!entries.reduce((p, c) => !p || !c ? null : p.clock < c.clock ? c : null)) {
-        console.log('[Db] WARNING: Update containing non-increasing clocks was ignored (address = ' + address + ')');
+export function isEntryValid(entry: IEntry, manifest: ICollectionManifest, ownerIdentity: string, address: string, log: ILogSink | null) {
+    // check_id(IEntry.value._id, IEntryBlockList.ownerIdentity)
+    if (manifest.publicAccess == AccessRights.ReadAnyWriteOwn &&
+        entry.value?._id != ownerIdentity) {
+        log?.warning('Update containing entry not keyed by block owner identity for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
         return false;
-    }
-
-    // check_max(IEntryBlockList.clock, IEntry.clock)
-    const lastEntry = entries.slice(-1)[0];
-    if (lastEntry && lastEntry.clock != entryBlockList.clock) {
-        console.log('[Db] WARNING: Update containing incorrect clock was ignored (address = ' + address + ')');
-        return false;
-    }
-
-    // check_value(IEntry.value)
-    if (manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
-        if (entries.length > 1) {
-            console.log('[Db] WARNING: Update containing multiple entries for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-            return false;
-        }
-        if (entries.length > 0 && entries[0]?.value?._id != selfIdentity) {
-            console.log('[Db] WARNING: Update containing entry not keyed by own identity for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-            return false;
-        }
     }
 
     // success!

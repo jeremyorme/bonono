@@ -1,7 +1,8 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
-import { ICollectionManifest } from '../private-data/collection-manifest';
+import { ICollectionManifest } from './collection-manifest';
 import { ICryptoProvider } from '../services/crypto-provider';
 import { IEntryBlockList, entryBlockListSchema, isEntryBlockListValid } from './entry-block-list';
+import { ILogSink } from '../services/log-sink';
 
 const ajv = new Ajv();
 
@@ -23,21 +24,21 @@ const collectionSchema: JTDSchemaType<ICollection> = {
 
 export const validateCollection = ajv.compile(collectionSchema);
 
-export async function isCollectionValid(collection: ICollection | null, cryptoProvider: ICryptoProvider, manifest: ICollectionManifest, address: string) {
+export async function isCollectionValid(collection: ICollection | null, cryptoProvider: ICryptoProvider, manifest: ICollectionManifest, address: string, log: ILogSink | null) {
     // check_exists(ICollection)
     if (!collection) {
-        console.log('[Db] ERROR: Collection structure not found (address = ' + address + ')');
+        log?.error('Collection structure not found (address = ' + address + ')');
         return false;
     }
 
     // check_type(ICollection)
     if (!validateCollection(collection)) {
-        console.log('[Db] ERROR: Collection structure invalid (address = ' + address + ')');
+        log?.error('Collection structure invalid (address = ' + address + ')');
         return false;
     }
 
     const blocksValid = await Promise.all(collection.entryBlockLists.map(
-        entryBlockList => isEntryBlockListValid(entryBlockList, cryptoProvider, manifest, address)));
+        entryBlockList => isEntryBlockListValid(entryBlockList, cryptoProvider, manifest, address, log)));
 
     return blocksValid.every(b => b);
 }

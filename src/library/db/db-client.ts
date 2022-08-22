@@ -1,3 +1,4 @@
+import { ConsoleLogSink } from '../services/console-log-sink';
 import { IpfsContentAccessor } from '../services/ipfs-content-accessor';
 import { IpfsPubSub } from '../services/ipfs-pub-sub';
 import { KeyPairCryptoProvider } from '../services/key-pair-crypto-provider';
@@ -82,6 +83,7 @@ export class DbClient implements IDbClient {
                 new IpfsPubSub(ipfs),
                 new KeyPairCryptoProvider(this._localStorage),
                 this._localStorage,
+                new ConsoleLogSink(),
                 new DbCollectionFactory(),
                 name) : null;
     }

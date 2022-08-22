@@ -1,5 +1,5 @@
-import { KeyPairCryptoProvider } from "../../library/services/key-pair-crypto-provider";
-import { MockLocalStorage } from "../test_util/mock-local-storage";
+import { KeyPairCryptoProvider } from '../../library/services/key-pair-crypto-provider';
+import { MockLocalStorage } from '../test_util/mock-local-storage';
 
 describe('key-pair-crypto-provider', () => {
     it('constructs', () => {
@@ -17,7 +17,7 @@ describe('key-pair-crypto-provider', () => {
         const privateKey = crypto.privateKey();
         // ---
 
-        expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{44}$/);
+        expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
     });
 
     it('generates a public key', async () => {
@@ -27,7 +27,7 @@ describe('key-pair-crypto-provider', () => {
         const publicKey = await crypto.publicKey();
         // ---
 
-        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{44}$/);
+        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
     });
 
     it('generates an id', async () => {

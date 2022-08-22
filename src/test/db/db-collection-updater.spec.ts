@@ -1,15 +1,15 @@
-import { defaultCollectionOptions } from "../../library/private-data/collection-options";
-import { DbCollectionUpdater } from "../../library/db/db-collection-updater";
-import { MockContentStorage } from "../test_util/mock-content-storage";
-import { MockCryptoProvider } from "../test_util/mock-crypto-provider";
-import { ICollectionManifest } from "../../library/private-data/collection-manifest";
-import { MockLocalStorage } from "../test_util/mock-local-storage";
-import { ICollection } from "../../library/public-data/collection";
-import { IEntryBlock } from "../../library/public-data/entry-block";
-import { IEntryBlockList } from "../../library/public-data/entry-block-list";
-import { IEntry } from "../../library/public-data/entry";
-import { make_entry_block_list } from "../test_util/collection-utils";
-import { AccessRights } from "../../library/private-data/access-rights";
+import { defaultCollectionOptions } from '../../library/private-data/collection-options';
+import { DbCollectionUpdater } from '../../library/db/db-collection-updater';
+import { MockContentStorage } from '../test_util/mock-content-storage';
+import { MockCryptoProvider } from '../test_util/mock-crypto-provider';
+import { ICollectionManifest } from '../../library/public-data/collection-manifest';
+import { MockLocalStorage } from '../test_util/mock-local-storage';
+import { ICollection } from '../../library/public-data/collection';
+import { IEntryBlock } from '../../library/public-data/entry-block';
+import { IEntryBlockList } from '../../library/public-data/entry-block-list';
+import { IEntry } from '../../library/public-data/entry';
+import { makeEntryBlockList } from '../test_util/collection-utils';
+import { AccessRights } from '../../library/public-data/access-rights';
 
 describe('db-collection-updater', () => {
 
@@ -20,7 +20,8 @@ describe('db-collection-updater', () => {
     it('constructs', () => {
         // Construct an updater
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(), _ => { }, defaultCollectionOptions);
+            new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(),
+            null, _ => { }, defaultCollectionOptions);
 
         // Check it is valid
         expect(updater).toBeTruthy();
@@ -37,7 +38,8 @@ describe('db-collection-updater', () => {
         const id = 'test-id';
         const crypto = new MockCryptoProvider(id);
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
@@ -47,10 +49,10 @@ describe('db-collection-updater', () => {
         expect(updater.address()).toBeTruthy();
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
-        expect(manifest).toHaveProperty("name", "test");
-        expect(manifest).toHaveProperty("creatorIdentity", id);
-        expect(manifest).toHaveProperty("publicAccess", "ReadWrite");
-        expect(manifest).toHaveProperty("entryBlockSize", defaultCollectionOptions.entryBlockSize);
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorIdentity', id);
+        expect(manifest).toHaveProperty('publicAccess', 'ReadWrite');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is granted to the creator
         expect(updater.canWrite()).toEqual(true);
@@ -62,7 +64,8 @@ describe('db-collection-updater', () => {
         const id = 'test-id';
         const crypto = new MockCryptoProvider(id);
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions });
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions });
 
         // ---
         await updater.init('test');
@@ -72,10 +75,10 @@ describe('db-collection-updater', () => {
         expect(updater.address()).toBeTruthy();
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
-        expect(manifest).toHaveProperty("name", "test");
-        expect(manifest).toHaveProperty("creatorIdentity", id);
-        expect(manifest).toHaveProperty("publicAccess", "Read");
-        expect(manifest).toHaveProperty("entryBlockSize", defaultCollectionOptions.entryBlockSize);
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorIdentity', id);
+        expect(manifest).toHaveProperty('publicAccess', 'Read');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is granted to the creator (owner)
         expect(updater.canWrite()).toEqual(true);
@@ -88,13 +91,15 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates public store
         const id = 'test-id-1';
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider(id), new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            content, new MockCryptoProvider(id), new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updaterOther.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1'.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -104,10 +109,10 @@ describe('db-collection-updater', () => {
         expect(updater.address()).toBeTruthy();
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
-        expect(manifest).toHaveProperty("name", "test");
-        expect(manifest).toHaveProperty("creatorIdentity", id);
-        expect(manifest).toHaveProperty("publicAccess", "ReadWrite");
-        expect(manifest).toHaveProperty("entryBlockSize", defaultCollectionOptions.entryBlockSize);
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorIdentity', id);
+        expect(manifest).toHaveProperty('publicAccess', 'ReadWrite');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is granted to identity that is not the creator
         expect(updater.canWrite()).toEqual(true);
@@ -120,13 +125,15 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates private store
         const id = 'test-id-1';
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider(id), new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions });
+            content, new MockCryptoProvider(id), new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions });
         await updaterOther.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1'.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -136,10 +143,10 @@ describe('db-collection-updater', () => {
         expect(updater.address()).toBeTruthy();
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
-        expect(manifest).toHaveProperty("name", "test");
-        expect(manifest).toHaveProperty("creatorIdentity", id);
-        expect(manifest).toHaveProperty("publicAccess", "Read");
-        expect(manifest).toHaveProperty("entryBlockSize", defaultCollectionOptions.entryBlockSize);
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorIdentity', id);
+        expect(manifest).toHaveProperty('publicAccess', 'Read');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is not granted to identity that is not the creator (owner)
         expect(updater.canWrite()).toEqual(false);
@@ -154,14 +161,16 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates public store and adds an item
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider('test-id-1'), local, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            content, new MockCryptoProvider('test-id-1'), local,
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updaterOther.init('test');
         await updaterOther.add([{ _id: 'the-key' }]);
 
         // Identity 'test-id-2' opens the store created by 'test-id-1'.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, local, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            content, crypto, local,
+            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -180,14 +189,16 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates private store and adds an item
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider('test-id-1'), local, _ => { }, { ...defaultCollectionOptions });
+            content, new MockCryptoProvider('test-id-1'), local,
+            null, _ => { }, { ...defaultCollectionOptions });
         await updaterOther.init('test');
         await updaterOther.add([{ _id: 'the-key' }]);
 
         // Identity 'test-id-2' opens the store created by 'test-id-1'.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, local, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            content, crypto, local,
+            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -200,9 +211,8 @@ describe('db-collection-updater', () => {
     it('inits non-existent collection', async () => {
         // Create updater with non-existent address
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), new MockCryptoProvider('test-id'),
-            new MockLocalStorage(), _ => { },
-            { ...defaultCollectionOptions, address: 'non-existent' });
+            new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, address: 'non-existent' });
 
         // ---
         const success = await updater.init('test');
@@ -230,7 +240,7 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            c => { collection = c; }, { ...defaultCollectionOptions });
+            null, c => { collection = c; }, { ...defaultCollectionOptions });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -294,7 +304,7 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.None });
+            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.None });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -367,7 +377,7 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5 });
+            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5 });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -432,7 +442,7 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 4 });
+            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 4 });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -493,14 +503,14 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates private store
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider('test-id-1'),
-            local, _ => { }, { ...defaultCollectionOptions });
+            content, new MockCryptoProvider('test-id-1'), local,
+            null, _ => { }, { ...defaultCollectionOptions });
         await updaterOther.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1' and adds an item
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, new MockCryptoProvider('test-id-2'),
-            local, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            content, new MockCryptoProvider('test-id-2'), local,
+            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
         await updater.init('test');
 
         // ---
@@ -527,9 +537,8 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto,
-            new MockLocalStorage(), c => { collection = c; },
-            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            content, crypto, new MockLocalStorage(),
+            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const id = await crypto.id();
         const value = { _id: id, value: 'my-data' }
@@ -584,9 +593,8 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto,
-            new MockLocalStorage(), c => { collection = c; },
-            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            content, crypto, new MockLocalStorage(),
+            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const id = await crypto.id();
         const value = { _id: id, value: 'my-data' }
@@ -629,8 +637,8 @@ describe('db-collection-updater', () => {
     it('does not add entry to read-any-write-own store when _id does not match self identity', async () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), new MockCryptoProvider('test-id-1'),
-            new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            new MockContentStorage(), new MockCryptoProvider('test-id-1'), new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
 
         // ---
@@ -646,8 +654,8 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), crypto,
-            new MockLocalStorage(), _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            new MockContentStorage(), crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const id = await crypto.id();
 
@@ -673,7 +681,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -686,7 +694,7 @@ describe('db-collection-updater', () => {
         const collection: ICollection = {
             senderIdentity: id,
             address: updater.address(),
-            entryBlockLists: [await make_entry_block_list([[entry]], content, crypto)],
+            entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
             addCount: 1
         };
 
@@ -706,7 +714,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = {
@@ -717,7 +725,7 @@ describe('db-collection-updater', () => {
         const collection: ICollection = {
             senderIdentity: id,
             address: updater.address(),
-            entryBlockLists: [await make_entry_block_list([[entry]], content, crypto)]
+            entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)]
         } as ICollection;
 
         // ---
@@ -734,7 +742,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry1: IEntry = {
@@ -745,7 +753,7 @@ describe('db-collection-updater', () => {
         const collection1: ICollection = {
             senderIdentity: id,
             address: updater.address(),
-            entryBlockLists: [await make_entry_block_list([[entry1]], content, crypto)],
+            entryBlockLists: [await makeEntryBlockList([[entry1]], content, crypto)],
             addCount: 1
         };
 
@@ -759,7 +767,7 @@ describe('db-collection-updater', () => {
         const collection2: ICollection = {
             senderIdentity: id,
             address: updater.address(),
-            entryBlockLists: [await make_entry_block_list([[entry2]], content, crypto)],
+            entryBlockLists: [await makeEntryBlockList([[entry2]], content, crypto)],
             addCount: 1
         };
 
@@ -779,7 +787,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = {
@@ -818,7 +826,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = {
@@ -859,7 +867,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = {
@@ -905,7 +913,7 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            c => { collection = c }, { ...defaultCollectionOptions });
+            null, c => { collection = c }, { ...defaultCollectionOptions });
         await updater.init('test');
 
         const values = [
@@ -945,5 +953,5 @@ describe('db-collection-updater', () => {
             expect(entries[i]).toHaveProperty('value', values[i]);
             expect(entries[i]).toHaveProperty('clock', i + 1);
         }
-    })
+    });
 });

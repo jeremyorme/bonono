@@ -1,16 +1,17 @@
-import { ICollectionOptions, defaultCollectionOptions, validateCollectionOptions } from "../private-data/collection-options";
-import { IEntryBlockList } from "../public-data/entry-block-list";
-import { ICollectionManifest, isCollectionManifestValid } from "../private-data/collection-manifest";
-import { ICollection, isCollectionValid } from "../public-data/collection";
-import { IEntryBlock, areEntryBlocksValid } from "../public-data/entry-block";
-import { IEntry } from "../public-data/entry";
-import { byClock, byOwnerIdentity } from "../util/sort-comparators";
-import { mergeArrays } from "../util/arrays";
-import { IContentAccessor } from "../services/content-accessor";
-import { ICryptoProvider } from "../services/crypto-provider";
-import { ILocalStorage } from "../services/local-storage";
-import { AccessRights } from "../private-data/access-rights";
-import { IObject } from "../public-data/object";
+import { ICollectionOptions, defaultCollectionOptions, validateCollectionOptions } from '../private-data/collection-options';
+import { areEntryBlocksValid, IEntryBlockList } from '../public-data/entry-block-list';
+import { ICollectionManifest, isCollectionManifestValid } from '../public-data/collection-manifest';
+import { ICollection, isCollectionValid } from '../public-data/collection';
+import { IEntryBlock } from '../public-data/entry-block';
+import { IEntry } from '../public-data/entry';
+import { byClock, byOwnerIdentity } from '../util/sort-comparators';
+import { mergeArrays } from '../util/arrays';
+import { IContentAccessor } from '../services/content-accessor';
+import { ICryptoProvider } from '../services/crypto-provider';
+import { ILocalStorage } from '../services/local-storage';
+import { AccessRights } from '../public-data/access-rights';
+import { IObject } from '../public-data/object';
+import { ILogSink } from '../services/log-sink';
 
 export interface IDbCollectionUpdater {
     init(name: string): Promise<boolean>;
@@ -43,6 +44,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         private _contentAccessor: IContentAccessor,
         private _cryptoProvider: ICryptoProvider,
         private _localStorage: ILocalStorage,
+        private _log: ILogSink | null,
         private _publish: (ICollection) => void,
         options: Partial<ICollectionOptions>) {
         this._options = { ...defaultCollectionOptions, ...options };
@@ -58,7 +60,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (this._options.address) {
             this._address = this._options.address;
             manifest = await this._contentAccessor.getObject<ICollectionManifest>(this._address);
-            if (manifest == null || !isCollectionManifestValid(manifest, this._address))
+            if (manifest == null || !isCollectionManifestValid(manifest, this._address, this._log))
                 return false;
             this._manifest = manifest;
         }
@@ -86,7 +88,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async merge(collection: ICollection): Promise<void> {
 
-        if (!await isCollectionValid(collection, this._cryptoProvider, this._manifest, this._address))
+        if (!await isCollectionValid(collection, this._cryptoProvider, this._manifest, this._address, this._log))
             return;
 
         // Determine which entry block lists are new
@@ -118,7 +120,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             const isNew = newEntryBlockOwners.has(entryBlockList.ownerIdentity);
 
             // Full validation for new block
-            if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address, this._manifest, this._selfIdentity))
+            if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address, this._manifest, this._log))
                 return;
 
             // Basic null-check for old block

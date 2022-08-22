@@ -1,5 +1,6 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
-import { AccessRights } from './access-rights';
+import { ILogSink } from '../services/log-sink';
+import { AccessRights, accessRightsSchema } from './access-rights';
 
 const ajv = new Ajv();
 
@@ -14,23 +15,23 @@ const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
     properties: {
         name: { type: 'string' },
         creatorIdentity: { type: 'string' },
-        publicAccess: { enum: [AccessRights.None, AccessRights.Read, AccessRights.ReadWrite] },
+        publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' }
     }
 };
 
 export const validateCollectionManifest = ajv.compile(collectionManifestSchema);
 
-export function isCollectionManifestValid(manifest: ICollectionManifest | null, address: string) {
+export function isCollectionManifestValid(manifest: ICollectionManifest | null, address: string, log: ILogSink | null) {
     // check_exists(ICollectionManifest)
     if (!manifest) {
-        console.log('[Db] ERROR: Collection manifest not found (address = ' + address + ')');
+        log?.error('Collection manifest not found (address = ' + address + ')');
         return false;
     }
 
     // check_type(ICollectionManifest)
     if (!validateCollectionManifest(manifest)) {
-        console.log('[Db] ERROR: Collection manifest invalid (address = ' + address + ')');
+        log?.error('Collection manifest invalid (address = ' + address + ')');
         return false;
     }
 

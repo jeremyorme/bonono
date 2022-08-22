@@ -7,6 +7,7 @@ import { IDbCollectionUpdater } from './db-collection-updater';
 import { ICryptoProvider } from '../services/crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { IDbCollectionFactory } from './db-collection-factory';
+import { ILogSink } from '../services/log-sink';
 
 /**
  * Provides access to a named database.
@@ -37,6 +38,7 @@ export class Db implements IDb {
         private _pubsub: IPubSub,
         private _cryptoProvider: ICryptoProvider,
         private _localStorage: ILocalStorage,
+        private _log: ILogSink,
         private _dbCollectionFactory: IDbCollectionFactory,
         private _name: string) { }
 
@@ -68,7 +70,7 @@ export class Db implements IDb {
         };
 
         const collectionUpdater = this._dbCollectionFactory.createCollectionUpdater(
-            this._contentAccessor, this._cryptoProvider, this._localStorage, pub, options);
+            this._contentAccessor, this._cryptoProvider, this._localStorage, this._log, pub, options);
         await collectionUpdater.init(this._name + '/' + name);
         this._collectionUpdaters.set(collectionUpdater.address(), collectionUpdater);
 

@@ -1,11 +1,11 @@
-import { IEntry } from "../../library/public-data/entry";
-import { IEntryBlock } from "../../library/public-data/entry-block";
-import { IEntryBlockList } from "../../library/public-data/entry-block-list";
-import { IContentAccessor } from "../../library/services/content-accessor";
-import { ICryptoProvider } from "../../library/services/crypto-provider";
-import { mergeArrays } from "../../library/util/arrays";
+import { IEntry } from '../../library/public-data/entry';
+import { IEntryBlock } from '../../library/public-data/entry-block';
+import { IEntryBlockList } from '../../library/public-data/entry-block-list';
+import { IContentAccessor } from '../../library/services/content-accessor';
+import { ICryptoProvider } from '../../library/services/crypto-provider';
+import { mergeArrays } from '../../library/util/arrays';
 
-export async function make_entry_block_list(entries: IEntry[][], content: IContentAccessor, crypto: ICryptoProvider) {
+export async function makeEntryBlockList(entries: IEntry[][], content: IContentAccessor, crypto: ICryptoProvider) {
     const entryBlocks: IEntryBlock[] = entries.map(entries => ({ entries }));
 
     const id = await crypto.id()

@@ -10,6 +10,7 @@ Enumeration of possible access rights.
 
 - [None](AccessRights.md#none)
 - [Read](AccessRights.md#read)
+- [ReadAnyWriteOwn](AccessRights.md#readanywriteown)
 - [ReadWrite](AccessRights.md#readwrite)
 
 ## Enumeration Members
@@ -23,6 +24,12 @@ ___
 ### Read
 
 • **Read** = ``"Read"``
+
+___
+
+### ReadAnyWriteOwn
+
+• **ReadAnyWriteOwn** = ``"ReadAnyWriteOwn"``
 
 ___
 
