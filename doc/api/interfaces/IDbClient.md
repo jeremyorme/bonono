@@ -12,6 +12,7 @@ Handles the connection to IPFS and opening databases.
 - [close](IDbClient.md#close)
 - [connect](IDbClient.md#connect)
 - [db](IDbClient.md#db)
+- [id](IDbClient.md#id)
 
 ## Methods
 
@@ -74,3 +75,21 @@ Opens a named database.
 `Promise`<``null`` \| [`IDb`](IDb.md)\>
 
 Database interface
+
+___
+
+### id
+
+▸ **id**(): ``null`` \| `string`
+
+ID string used to identify the current user.
+
+**`Remarks`**
+
+Returns own ID after successful call to connect, otherwise null
+
+#### Returns
+
+``null`` \| `string`
+
+Own ID string
