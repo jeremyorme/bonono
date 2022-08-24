@@ -4,13 +4,13 @@ Bonono is a simple peer-to-peer data store that provides:
 
 * Automatic replication
 * Load time complexity of O(N_entries) 
-* Public/private access control
+* Public access control (read, read/write, read-all/write-own, none)
 
 Why is it called Bonono? Simple, Opple sounded too silly.
 
 ## Using Bonono
 
-- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.0.4/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
+- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.1.0/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
 - Then you can use Bonono anywhere in your template, JSX, html etc
 
 See the [Bonono DB component reference](src/components/bonono-db/readme.md) and [Bonono API](doc/api/README.md)
