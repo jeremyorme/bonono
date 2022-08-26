@@ -69,7 +69,7 @@ export class DbClient implements IDbClient {
         this._id = await crypto.id();
 
         this._window['_ipfs'] = await this._window['Ipfs'].create({
-            init: { privateKey: crypto.privateKey() },
+            init: { privateKey: await crypto.privateKey() },
             preload: { enabled: false },
             EXPERIMENTAL: { pubsub: true },
             config: {
