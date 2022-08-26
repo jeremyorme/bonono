@@ -13,8 +13,7 @@ export class LevelLocalStorage implements ILocalStorage {
             const result = await this._db.get(key);
             return result;
         }
-        catch
-        {
+        catch {
             return null;
         }
     }
@@ -24,8 +23,7 @@ export class LevelLocalStorage implements ILocalStorage {
             await this._db.put(key, value);
             return true;
         }
-        catch
-        {
+        catch {
             return false;
         }
     }
