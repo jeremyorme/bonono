@@ -17,20 +17,10 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
     private _publicKey: string;
     private _passPhrase: string;
 
-    constructor(localStorage: ILocalStorage) {
-        let privateKey = localStorage.getItem('private-key');
-        if (privateKey) {
-            this._privateKey = privateKey;
-        }
-        else {
-            this._privateKey = binary_to_base58(ed.utils.randomPrivateKey());
-            localStorage.setItem('private-key', this._privateKey);
-        }
-        this._privateKeyHex = ed.utils.bytesToHex(base58_to_binary(this._privateKey));
-    }
+    constructor(private _localStorage: ILocalStorage) { }
 
     async sign(obj: any): Promise<string> {
-        return binary_to_base58(await ed.sign(stringToHex(JSON.stringify(obj)), this._privateKeyHex));
+        return binary_to_base58(await ed.sign(stringToHex(JSON.stringify(obj)), await this.privateKeyHex()));
     }
 
     async verify(obj: any, signature: string, publicKey: string): Promise<boolean> {
@@ -41,33 +31,50 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
 
     async id(): Promise<string> {
         const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
-        return binary_to_base58(await ed.sign(this._privateKeyHex, publicKeyHex));
+        return binary_to_base58(await ed.sign(await this.privateKeyHex(), publicKeyHex));
     }
 
-    privateKey(): string {
+    async privateKey(): Promise<string> {
+        if (!this._privateKey) {
+            let privateKey = await this._localStorage.getItem('private-key');
+            if (privateKey) {
+                this._privateKey = privateKey;
+            }
+            else {
+                this._privateKey = binary_to_base58(ed.utils.randomPrivateKey());
+                await this._localStorage.setItem('private-key', this._privateKey);
+            }
+        }
         return this._privateKey;
     }
 
     async publicKey(): Promise<string> {
         if (!this._publicKey)
-            this._publicKey = binary_to_base58(await ed.getPublicKey(this._privateKeyHex));
+            this._publicKey = binary_to_base58(await ed.getPublicKey(await this.privateKeyHex()));
 
         return this._publicKey;
     }
 
-    private async _generatePassPhrase(): Promise<string> {
-        if (!this._passPhrase) {
-            const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
-            this._passPhrase = await binary_to_base58(await ed.getSharedSecret(this._privateKeyHex, publicKeyHex));
-        }
-        return this._passPhrase;
-    }
-
     async encrypt(plainText: string): Promise<string> {
-        return CryptoJS.AES.encrypt(CryptoJS.enc.Latin1.parse(plainText), await this._generatePassPhrase()).toString();
+        return CryptoJS.AES.encrypt(CryptoJS.enc.Latin1.parse(plainText), await this.generatePassPhrase()).toString();
     }
 
     async decrypt(cipherText: string): Promise<string> {
-        return CryptoJS.enc.Latin1.stringify(CryptoJS.AES.decrypt(cipherText, await this._generatePassPhrase()));
+        return CryptoJS.enc.Latin1.stringify(CryptoJS.AES.decrypt(cipherText, await this.generatePassPhrase()));
+    }
+
+    private async privateKeyHex(): Promise<string> {
+        if (!this._privateKeyHex) {
+            this._privateKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.privateKey()));
+        }
+        return this._privateKeyHex;
+    }
+
+    private async generatePassPhrase(): Promise<string> {
+        if (!this._passPhrase) {
+            const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
+            this._passPhrase = await binary_to_base58(await ed.getSharedSecret(await this.privateKeyHex(), publicKeyHex));
+        }
+        return this._passPhrase;
     }
 }

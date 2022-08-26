@@ -2,8 +2,8 @@ import { ConsoleLogSink } from '../services/console-log-sink';
 import { IpfsContentAccessor } from '../services/ipfs-content-accessor';
 import { IpfsPubSub } from '../services/ipfs-pub-sub';
 import { KeyPairCryptoProvider } from '../services/key-pair-crypto-provider';
+import { LevelLocalStorage } from '../services/level-local-storage';
 import { ILocalStorage } from '../services/local-storage';
-import { WindowLocalStorage } from '../services/window-local-storage';
 import { Db, IDb } from './db';
 import { DbCollectionFactory } from './db-collection-factory';
 
@@ -51,7 +51,7 @@ export class DbClient implements IDbClient {
     constructor(
         private _address: string,
         private _window: any) {
-        this._localStorage = new WindowLocalStorage();
+        this._localStorage = new LevelLocalStorage('bonono');
     }
 
     async connect(): Promise<boolean> {

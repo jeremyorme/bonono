@@ -1,4 +1,4 @@
 export interface ILocalStorage {
-    getItem(key: string): string | null;
-    setItem(key: string, value: string);
+    getItem(key: string): Promise<string | null>;
+    setItem(key: string, value: string): Promise<boolean>;
 }

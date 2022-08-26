@@ -74,7 +74,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             this._address = await this._contentAccessor.putObject(this._manifest);
         }
 
-        const collectionCid = this._localStorage.getItem('/db/' + this._address);
+        const collectionCid = await this._localStorage.getItem('/db/' + this._address);
         if (collectionCid) {
             const collection = await this._contentAccessor.getObject<ICollection>(collectionCid);
             if (collection) {
@@ -172,7 +172,9 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             return false;
 
         this._collectionCid = newCollectionCid;
-        this._localStorage.setItem('/db/' + this._address, this._collectionCid);
+        if (!await this._localStorage.setItem('/db/' + this._address, this._collectionCid))
+            return false;
+
         this._publish(collection);
         for (const cb of this._updatedCallbacks)
             cb();

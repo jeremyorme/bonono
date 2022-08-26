@@ -6,11 +6,12 @@ import { ILocalStorage } from "../../library/services/local-storage";
 export class MockLocalStorage implements ILocalStorage {
     private _store: Map<string, string> = new Map();
 
-    getItem(key: string): string | null {
+    async getItem(key: string): Promise<string | null> {
         return this._store.get(key) || null;
     }
 
-    setItem(key: string, value: string) {
+    async setItem(key: string, value: string): Promise<boolean> {
         this._store.set(key, value);
+        return false;
     }
 }
