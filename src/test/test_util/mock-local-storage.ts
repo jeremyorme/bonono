@@ -12,6 +12,6 @@ export class MockLocalStorage implements ILocalStorage {
 
     async setItem(key: string, value: string): Promise<boolean> {
         this._store.set(key, value);
-        return false;
+        return true;
     }
 }

@@ -10,11 +10,11 @@ describe('key-pair-crypto-provider', () => {
         expect(crypto).toBeTruthy();
     });
 
-    it('generates a private key', () => {
+    it('generates a private key', async () => {
         const crypto = new KeyPairCryptoProvider(new MockLocalStorage());
 
         // ---
-        const privateKey = crypto.privateKey();
+        const privateKey = await crypto.privateKey();
         // ---
 
         expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
