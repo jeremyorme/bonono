@@ -8,7 +8,6 @@ import { mergeArrays } from '../util/arrays';
 import { IEntry } from './entry';
 
 export interface IEntryBlockList {
-    ownerIdentity: string;
     entryBlockCids: string[];
     clock: number;
     publicKey: string;
@@ -17,7 +16,6 @@ export interface IEntryBlockList {
 
 export const entryBlockListSchema: JTDSchemaType<IEntryBlockList> = {
     properties: {
-        ownerIdentity: { type: 'string' },
         entryBlockCids: { elements: { type: 'string' } },
         clock: { type: 'uint32' },
         publicKey: { type: 'string' },
@@ -40,7 +38,7 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
     }
 
     // check_has_write_access(IEntryBlockList.ownerIdentity, ICollectionManifest.ownerIdentity)
-    if (manifest.publicAccess != AccessRights.ReadWrite && manifest.creatorIdentity != entryBlockList.ownerIdentity) {
+    if (manifest.publicAccess != AccessRights.ReadWrite && manifest.creatorPublicKey != entryBlockList.publicKey) {
         log?.warning('Update containing illegal write was ignored (address = ' + address + ')');
         return false;
     }
@@ -60,7 +58,7 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
 }
 
 export function areEntryBlocksValid(entryBlockList: IEntryBlockList, entryBlocks: (IEntryBlock | null)[], address: string, manifest: ICollectionManifest, log: ILogSink | null) {
-    return entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.ownerIdentity, address, log)) &&
+    return entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, address, log)) &&
         areMergedEntriesValid(mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])), entryBlockList, address, log);
 }
 

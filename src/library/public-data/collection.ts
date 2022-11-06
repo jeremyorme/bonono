@@ -7,7 +7,7 @@ import { ILogSink } from '../services/log-sink';
 const ajv = new Ajv();
 
 export interface ICollection {
-    senderIdentity: string;
+    senderPublicKey: string;
     address: string;
     entryBlockLists: IEntryBlockList[];
     addCount: number;
@@ -15,7 +15,7 @@ export interface ICollection {
 
 const collectionSchema: JTDSchemaType<ICollection> = {
     properties: {
-        senderIdentity: { type: 'string' },
+        senderPublicKey: { type: 'string' },
         address: { type: 'string' },
         entryBlockLists: { elements: entryBlockListSchema },
         addCount: { type: 'uint32' }

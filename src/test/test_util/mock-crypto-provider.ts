@@ -7,8 +7,8 @@ import { cyrb53hex } from "./cyrb53";
 export class MockCryptoProvider implements ICryptoProvider {
     private _publicKey: string;
 
-    constructor(private _id: string) {
-        this._publicKey = cyrb53hex(this._id);
+    constructor(id: string) {
+        this._publicKey = cyrb53hex(id);
     }
 
     async sign(obj: any): Promise<string> {
@@ -21,10 +21,6 @@ export class MockCryptoProvider implements ICryptoProvider {
         const objHash = cyrb53hex(JSON.stringify(obj));
         const objSignature = objHash + '-' + publicKey;
         return signature == objSignature;
-    }
-
-    async id(): Promise<string> {
-        return this._id;
     }
 
     async publicKey(): Promise<string> {

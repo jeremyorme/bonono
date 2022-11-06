@@ -16,11 +16,12 @@ export const entrySchema: JTDSchemaType<IEntry> = {
     }
 };
 
-export function isEntryValid(entry: IEntry, manifest: ICollectionManifest, ownerIdentity: string, address: string, log: ILogSink | null) {
+export function isEntryValid(entry: IEntry, manifest: ICollectionManifest, publicKey: string, address: string, log: ILogSink | null) {
     // check_id(IEntry.value._id, IEntryBlockList.ownerIdentity)
     if (manifest.publicAccess == AccessRights.ReadAnyWriteOwn &&
-        entry.value?._id != ownerIdentity) {
-        log?.warning('Update containing entry not keyed by block owner identity for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
+        entry.value?._id != publicKey) {
+        log?.warning('Update to ReadAnyWriteOwn collection containing entry not keyed by writer\'s public key was ignored ' +
+            '(entry id = ' + entry.value?._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
         return false;
     }
 

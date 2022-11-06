@@ -37,16 +37,16 @@ export interface IDbClient {
     address(): string;
 
     /**
-     * ID string used to identify the current user.
-     * @remarks Returns own ID after successful call to connect, otherwise null
-     * @returns Own ID string
+     * Public key of the current user.
+     * @remarks Returns own public key after successful call to connect, otherwise null
+     * @returns Own public key string
      */
-    id(): string | null;
+    publicKey(): string | null;
 }
 
 export class DbClient implements IDbClient {
     private _localStorage: ILocalStorage;
-    private _id: string | null = null;
+    private _publicKey: string | null = null;
 
     constructor(
         private _address: string,
@@ -66,7 +66,7 @@ export class DbClient implements IDbClient {
             return true;
 
         const crypto = new KeyPairCryptoProvider(this._localStorage);
-        this._id = await crypto.id();
+        this._publicKey = await crypto.publicKey();
 
         this._window['_ipfs'] = await this._window['Ipfs'].create({
             init: { privateKey: await crypto.privateKey() },
@@ -101,5 +101,5 @@ export class DbClient implements IDbClient {
 
     address(): string { return this._address; }
 
-    id(): string | null { return this._id; }
+    publicKey(): string | null { return this._publicKey; }
 }

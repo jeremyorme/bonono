@@ -10,7 +10,7 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
@@ -21,13 +21,13 @@ describe('entry', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeTruthy();
@@ -39,20 +39,20 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entryBlock: IEntryBlock = {
             entries: [{} as IEntry]
         };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -65,20 +65,20 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entryBlock: IEntryBlock = {
             entries: []
         };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -91,7 +91,7 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
@@ -102,13 +102,13 @@ describe('entry', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, false, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, false, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -121,26 +121,26 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entryBlock: IEntryBlock = {
             entries: [{
                 clock: 1,
-                value: { _id: id }
+                value: { _id: publicKey }
             }, {
                 clock: 2,
-                value: { _id: id }
+                value: { _id: publicKey }
             }]
         };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -153,7 +153,7 @@ describe('entry', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
@@ -164,18 +164,19 @@ describe('entry', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, id, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
         // ---
 
         expect(valid).toBeFalsy();
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update containing entry not keyed by block owner identity for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
+        expect(log.warnings[0]).toEqual('Update to ReadAnyWriteOwn collection containing entry not keyed by writer\'s public key was ignored ' +
+            '(entry id = ' + entry.value._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
     });
 });

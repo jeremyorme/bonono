@@ -44,11 +44,11 @@ export class Db implements IDb {
 
     async collection(name: string, options: Partial<ICollectionOptions> = {}): Promise<IDbCollection> {
 
-        const selfIdentity = await this._cryptoProvider.id();
+        const _selfPublicKey = await this._cryptoProvider.publicKey();
 
         const sub = collectionJson => {
             const collection: ICollection = JSON.parse(collectionJson.data) as ICollection;
-            if (collection.senderIdentity == selfIdentity || !collection.address)
+            if (collection.senderPublicKey == _selfPublicKey || !collection.address)
                 return;
             const updater = this._collectionUpdaters.get(collection.address);
             if (updater)

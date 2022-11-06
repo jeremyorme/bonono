@@ -4,7 +4,7 @@ import { ICollectionManifest, isCollectionManifestValid } from '../public-data/c
 import { ICollection, isCollectionValid } from '../public-data/collection';
 import { IEntryBlock } from '../public-data/entry-block';
 import { IEntry } from '../public-data/entry';
-import { byClock, byOwnerIdentity } from '../util/sort-comparators';
+import { byClock, byPublicKey } from '../util/sort-comparators';
 import { mergeArrays } from '../util/arrays';
 import { IContentAccessor } from '../services/content-accessor';
 import { ICryptoProvider } from '../services/crypto-provider';
@@ -37,7 +37,6 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     private _updatedCallbacks: Array<() => void> = [];
     private _addCount: number = 0;
     private _numEntries: number = 0;
-    private _selfIdentity: string = '';
     private _selfPublicKey: string = '';
 
     constructor(
@@ -53,7 +52,6 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async init(name: string): Promise<boolean> {
 
-        this._selfIdentity = await this._cryptoProvider.id();
         this._selfPublicKey = await this._cryptoProvider.publicKey();
 
         var manifest: ICollectionManifest | null;
@@ -67,7 +65,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         else {
             this._manifest = {
                 name,
-                creatorIdentity: this._selfIdentity,
+                creatorPublicKey: this._selfPublicKey,
                 publicAccess: this._options.publicAccess,
                 entryBlockSize: this._options.entryBlockSize
             };
@@ -93,20 +91,20 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Determine which entry block lists are new
         const isEntryBlockListNew = (entryBlockList: IEntryBlockList) => {
-            const existingEntryBlockList = this._entryBlockLists.get(entryBlockList.ownerIdentity);
+            const existingEntryBlockList = this._entryBlockLists.get(entryBlockList.publicKey);
             return !existingEntryBlockList || entryBlockList.clock > existingEntryBlockList.clock;
         };
         const newEntryBlockLists = collection.entryBlockLists.filter(entryBlockList => isEntryBlockListNew(entryBlockList));
         if (newEntryBlockLists.length == 0)
             return;
-        const newEntryBlockOwners: Set<string> = new Set(newEntryBlockLists.map(
-            newEntryBlockList => newEntryBlockList.ownerIdentity));
+        const newEntryBlockPublicKeys: Set<string> = new Set(newEntryBlockLists.map(
+            newEntryBlockList => newEntryBlockList.publicKey));
 
-        // Generate merged entry block lists sorted by owner
+        // Generate merged entry block lists sorted by public key
         const mergedEntryBlockLists: Map<string, IEntryBlockList> = new Map(this._entryBlockLists);
         for (const newEntryBlockList of newEntryBlockLists)
-            mergedEntryBlockLists.set(newEntryBlockList.ownerIdentity, newEntryBlockList);
-        const sortedMergedEntryBlockLists = Array.from(mergedEntryBlockLists.values()).sort(byOwnerIdentity);
+            mergedEntryBlockLists.set(newEntryBlockList.publicKey, newEntryBlockList);
+        const sortedMergedEntryBlockLists = Array.from(mergedEntryBlockLists.values()).sort(byPublicKey);
 
         // Try to load the entry blocks
         const sortedMergedEntryBlocks = await Promise.all(sortedMergedEntryBlockLists.map(newEntryBlockList =>
@@ -117,7 +115,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         for (let i = 0; i < sortedMergedEntryBlockLists.length; ++i) {
             const entryBlockList = sortedMergedEntryBlockLists[i];
             const entryBlocks = sortedMergedEntryBlocks[i];
-            const isNew = newEntryBlockOwners.has(entryBlockList.ownerIdentity);
+            const isNew = newEntryBlockPublicKeys.has(entryBlockList.publicKey);
 
             // Full validation for new block
             if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address, this._manifest, this._log))
@@ -160,9 +158,9 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     private async _updateCollectionCid(): Promise<boolean> {
         const collection: ICollection = {
-            senderIdentity: this._selfIdentity,
+            senderPublicKey: this._selfPublicKey,
             address: this._address,
-            entryBlockLists: Array.from(this._entryBlockLists.values()).sort(byOwnerIdentity),
+            entryBlockLists: Array.from(this._entryBlockLists.values()).sort(byPublicKey),
             addCount: this._addCount
         };
 
@@ -193,7 +191,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 return;
             const obj = objs[0];
 
-            if (obj._id != this._selfIdentity)
+            if (obj._id != this._selfPublicKey)
                 return;
 
             this._index.set(obj._id, obj);
@@ -203,32 +201,30 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             const entryBlock: IEntryBlock = { entries: [entry] };
             const entryBlockCid = await this._contentAccessor.putObject(entryBlock);
             myEntryBlockList = {
-                ownerIdentity: this._selfIdentity,
                 entryBlockCids: [entryBlockCid],
                 clock: 0,
                 publicKey: this._selfPublicKey,
                 signature: ''
             };
-            this._entryBlockLists.set(this._selfIdentity, myEntryBlockList);
+            this._entryBlockLists.set(this._selfPublicKey, myEntryBlockList);
         }
         else {
             for (const obj of objs)
                 this._index.set(obj._id, obj);
             this._numEntries += objs.length;
 
-            const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity);
+            const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfPublicKey);
             if (maybeMyEntryBlockList) {
                 myEntryBlockList = maybeMyEntryBlockList;
             }
             else {
                 myEntryBlockList = {
-                    ownerIdentity: this._selfIdentity,
                     entryBlockCids: [],
                     clock: 0,
                     publicKey: this._selfPublicKey,
                     signature: ''
                 };
-                this._entryBlockLists.set(this._selfIdentity, myEntryBlockList);
+                this._entryBlockLists.set(this._selfPublicKey, myEntryBlockList);
             }
 
             var lastBlock: IEntryBlock = { entries: [] };
@@ -299,24 +295,26 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     }
 
     onPeerJoined(_peer: string) {
-        if (this._entryBlockLists.size > 0)
-            this._publish({
-                senderIdentity: this._selfIdentity,
+        if (this._entryBlockLists.size > 0) {
+            let collection: ICollection = {
+                senderPublicKey: this._selfPublicKey,
                 address: this._address,
                 entryBlockLists: Array.from(this._entryBlockLists.values()),
                 addCount: this._addCount
-            });
+            };
+            this._publish(collection);
+        }
     };
 
     onUpdated(callback: () => void) { this._updatedCallbacks.push(callback); }
 
     canRead(): boolean {
-        return this._selfIdentity == this._manifest.creatorIdentity ||
+        return this._selfPublicKey == this._manifest.creatorPublicKey ||
             this._manifest.publicAccess != AccessRights.None;
     }
 
     canWrite(): boolean {
-        return this._selfIdentity == this._manifest.creatorIdentity ||
+        return this._selfPublicKey == this._manifest.creatorPublicKey ||
             this._manifest.publicAccess == AccessRights.ReadWrite;
     }
 

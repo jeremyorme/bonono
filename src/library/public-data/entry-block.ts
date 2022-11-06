@@ -18,7 +18,7 @@ const entryBlockSchema: JTDSchemaType<IEntryBlock> = {
 
 const validateEntryBlock = ajv.compile(entryBlockSchema);
 
-export function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolean, manifest: ICollectionManifest, ownerIdentity: string, address: string, log: ILogSink | null) {
+export function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolean, manifest: ICollectionManifest, publicKey: string, address: string, log: ILogSink | null) {
     // check_exists(IEntryBlock)
     if (!entryBlock) {
         log?.warning('Update referencing missing block was ignored (address = ' + address + ')');
@@ -45,5 +45,5 @@ export function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolea
         return false;
     }
 
-    return entryBlock.entries.every(e => isEntryValid(e, manifest, ownerIdentity, address, log));
+    return entryBlock.entries.every(e => isEntryValid(e, manifest, publicKey, address, log));
 }

@@ -14,7 +14,7 @@ describe('entry block list', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
@@ -23,7 +23,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
@@ -42,16 +42,16 @@ describe('entry block list', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
-            value: { _id: id }
+            value: { _id: publicKey }
         };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16
         };
@@ -82,7 +82,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16
         };
@@ -106,7 +106,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16
         };
@@ -135,7 +135,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await cryptoOwner.id(),
+            creatorPublicKey: await cryptoOwner.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16
         };
@@ -163,7 +163,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16
         };
@@ -193,7 +193,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16
         };
@@ -221,15 +221,15 @@ describe('entry block list', () => {
             value: { _id: 'id' }
         };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
+        entryBlockList.publicKey = 'LIUQGJDA,HDAS';
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: entryBlockList.publicKey,
             publicAccess: AccessRights.Read,
             entryBlockSize: 16
         };
 
-        entryBlockList.publicKey = 'LIUQGJDA,HDAS';
 
         // ---
         const valid = await isEntryBlockListValid(entryBlockList, crypto, manifest, address, log);
@@ -266,7 +266,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 2
         };
@@ -317,7 +317,7 @@ describe('entry block list', () => {
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: await crypto.id(),
+            creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 2
         };

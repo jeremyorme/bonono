@@ -8,10 +8,10 @@ describe('collection manifest', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
@@ -43,10 +43,10 @@ describe('collection manifest', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 1.3
         };

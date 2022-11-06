@@ -6,7 +6,7 @@ const ajv = new Ajv();
 
 export interface ICollectionManifest {
     name: string;
-    creatorIdentity: string;
+    creatorPublicKey: string;
     publicAccess: AccessRights;
     entryBlockSize: number;
 }
@@ -14,7 +14,7 @@ export interface ICollectionManifest {
 const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
     properties: {
         name: { type: 'string' },
-        creatorIdentity: { type: 'string' },
+        creatorPublicKey: { type: 'string' },
         publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' }
     }

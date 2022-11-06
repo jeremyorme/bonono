@@ -29,11 +29,6 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
         return ed.verify(ed.Signature.fromHex(signatureHex), stringToHex(JSON.stringify(obj)), publicKeyHex);
     }
 
-    async id(): Promise<string> {
-        const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
-        return binary_to_base58(await ed.sign(await this.privateKeyHex(), publicKeyHex));
-    }
-
     async privateKey(): Promise<string> {
         if (!this._privateKey) {
             let privateKey = await this._localStorage.getItem('private-key');

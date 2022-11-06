@@ -13,20 +13,20 @@ describe('collection', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
         };
         const collection: ICollection = {
-            senderIdentity: id,
+            senderPublicKey: publicKey,
             address: address,
             entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
             addCount: 1
         };
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
@@ -44,10 +44,10 @@ describe('collection', () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };
@@ -67,20 +67,20 @@ describe('collection', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const id = await crypto.id();
+        const publicKey = await crypto.publicKey();
         const entry: IEntry = {
             clock: 1,
             value: { _id: 'id' }
         };
         const collection: ICollection = {
-            senderIdentity: id,
+            senderPublicKey: publicKey,
             address: address,
             entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
             addCount: 1.9
         };
         const manifest: ICollectionManifest = {
             name: 'my-store',
-            creatorIdentity: id,
+            creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16
         };

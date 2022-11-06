@@ -12,7 +12,7 @@ Handles the connection to IPFS and opening databases.
 - [close](IDbClient.md#close)
 - [connect](IDbClient.md#connect)
 - [db](IDbClient.md#db)
-- [id](IDbClient.md#id)
+- [publicKey](IDbClient.md#publickey)
 
 ## Methods
 
@@ -78,18 +78,18 @@ Database interface
 
 ___
 
-### id
+### publicKey
 
-▸ **id**(): ``null`` \| `string`
+▸ **publicKey**(): ``null`` \| `string`
 
-ID string used to identify the current user.
+Public key of the current user.
 
 **`Remarks`**
 
-Returns own ID after successful call to connect, otherwise null
+Returns own public key after successful call to connect, otherwise null
 
 #### Returns
 
 ``null`` \| `string`
 
-Own ID string
+Own public key string

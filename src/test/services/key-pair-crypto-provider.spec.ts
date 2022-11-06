@@ -30,16 +30,6 @@ describe('key-pair-crypto-provider', () => {
         expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
     });
 
-    it('generates an id', async () => {
-        const crypto = new KeyPairCryptoProvider(new MockLocalStorage());
-
-        // ---
-        const publicKey = await crypto.id();
-        // ---
-
-        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{87,88}$/);
-    });
-
     it('generates a signature', async () => {
         const crypto = new KeyPairCryptoProvider(new MockLocalStorage());
 
