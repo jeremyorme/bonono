@@ -35,7 +35,7 @@ npm start
 The newly created React project should have an `index.html` file in `bonono-app/public/`. Add the following script tag to the `<head>` section:
 
 ```html
-<script type='module' src='https://unpkg.com/bonono@0.1.0/dist/bonono/bonono.esm.js'></script>
+<script type='module' src='https://unpkg.com/bonono@0.2.0/dist/bonono/bonono.esm.js'></script>
 ```
 
 Bonono depends on [JS-IPFS](https://js.ipfs.io) so it is also necessary to add the following script tag:
