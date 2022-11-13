@@ -1,6 +1,4 @@
-import { AccessRights } from '../../library/public-data/access-rights';
 import { ICollection, isCollectionValid } from '../../library/public-data/collection';
-import { ICollectionManifest } from '../../library/public-data/collection-manifest';
 import { IEntry } from '../../library/public-data/entry';
 import { makeEntryBlockList } from '../test_util/collection-utils';
 import { MockContentStorage } from '../test_util/mock-content-storage';
@@ -24,15 +22,9 @@ describe('collection', () => {
             entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
             addCount: 1
         };
-        const manifest: ICollectionManifest = {
-            name: 'my-store',
-            creatorPublicKey: publicKey,
-            publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
-        };
 
         // ---
-        const valid = await isCollectionValid(collection, crypto, manifest, address, log);
+        const valid = await isCollectionValid(collection, address, log);
         // ---
 
         expect(valid).toBeTruthy();
@@ -43,17 +35,9 @@ describe('collection', () => {
     it('fails validation if collection is null', async () => {
         const log = new MockLogSink();
         const address = 'store-address';
-        const crypto = new MockCryptoProvider('test-id');
-        const publicKey = await crypto.publicKey();
-        const manifest: ICollectionManifest = {
-            name: 'my-store',
-            creatorPublicKey: publicKey,
-            publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
-        };
 
         // ---
-        const valid = await isCollectionValid(null, crypto, manifest, address, log);
+        const valid = await isCollectionValid(null, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -78,15 +62,9 @@ describe('collection', () => {
             entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
             addCount: 1.9
         };
-        const manifest: ICollectionManifest = {
-            name: 'my-store',
-            creatorPublicKey: publicKey,
-            publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
-        };
 
         // ---
-        const valid = await isCollectionValid(collection, crypto, manifest, address, log);
+        const valid = await isCollectionValid(collection, address, log);
         // ---
 
         expect(valid).toBeFalsy();

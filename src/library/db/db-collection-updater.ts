@@ -1,5 +1,5 @@
 import { ICollectionOptions, defaultCollectionOptions, validateCollectionOptions } from '../private-data/collection-options';
-import { areEntryBlocksValid, IEntryBlockList } from '../public-data/entry-block-list';
+import { areEntryBlocksValid, IEntryBlockList, isEntryBlockListValid } from '../public-data/entry-block-list';
 import { ICollectionManifest, isCollectionManifestValid } from '../public-data/collection-manifest';
 import { ICollection, isCollectionValid } from '../public-data/collection';
 import { IEntryBlock } from '../public-data/entry-block';
@@ -86,7 +86,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async merge(collection: ICollection): Promise<void> {
 
-        if (!await isCollectionValid(collection, this._cryptoProvider, this._manifest, this._address, this._log))
+        // Validate the collection
+        if (!await isCollectionValid(collection, this._address, this._log))
             return;
 
         // Determine which entry block lists are new
@@ -97,8 +98,12 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         const newEntryBlockLists = collection.entryBlockLists.filter(entryBlockList => isEntryBlockListNew(entryBlockList));
         if (newEntryBlockLists.length == 0)
             return;
-        const newEntryBlockPublicKeys: Set<string> = new Set(newEntryBlockLists.map(
-            newEntryBlockList => newEntryBlockList.publicKey));
+
+        // Validate the new blocks
+        const blocksValid = await Promise.all(newEntryBlockLists.map(
+            entryBlockList => isEntryBlockListValid(entryBlockList, this._cryptoProvider, this._manifest, this._address, this._log)));
+        if (!blocksValid.every(b => b))
+            return;
 
         // Generate merged entry block lists sorted by public key
         const mergedEntryBlockLists: Map<string, IEntryBlockList> = new Map(this._entryBlockLists);
@@ -112,6 +117,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)))));
 
         // Validate the entry blocks
+        const newEntryBlockPublicKeys: Set<string> = new Set(newEntryBlockLists.map(
+            newEntryBlockList => newEntryBlockList.publicKey));
         for (let i = 0; i < sortedMergedEntryBlockLists.length; ++i) {
             const entryBlockList = sortedMergedEntryBlockLists[i];
             const entryBlocks = sortedMergedEntryBlocks[i];
