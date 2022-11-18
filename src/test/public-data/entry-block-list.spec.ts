@@ -65,7 +65,7 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(entryBlockList, await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeTruthy();
@@ -280,7 +280,7 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(entryBlockList, await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
@@ -331,12 +331,174 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(entryBlockList, await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
         expect(log.warnings[0]).toEqual('Update containing incorrect clock was ignored (address = ' + address + ')');
+    });
+
+    it('fails validation for a block list that mutates the only existing entry', async () => {
+        const log = new MockLogSink();
+        const content = new MockContentStorage();
+        const address = 'store-address';
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+        const existing_entry = {
+            clock: 1,
+            value: { _id: publicKey, data: "existing" }
+        };
+        const existing_entry_block: IEntryBlock = { entries: [existing_entry] };
+        const new_entry = {
+            clock: 1,
+            value: { _id: publicKey, data: "new" }
+        };
+        const new_entry_block: IEntryBlock = { entries: [new_entry] };
+        const entryBlockList: IEntryBlockList = await makeEntryBlockList([[new_entry]], content, crypto);
+
+        const manifest: ICollectionManifest = {
+            name: 'my-store',
+            creatorPublicKey: publicKey,
+            publicAccess: AccessRights.Read,
+            entryBlockSize: 16
+        };
+
+        // ---
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        // ---
+
+        expect(validBlocks).toBeFalsy();
+        expect(log.warnings.length).toEqual(1);
+        expect(log.warnings[0]).toEqual('Update attempting to rewrite history was ignored (address = ' + address + ')');
+    });
+
+    it('fails validation for a block list that removes an effective entry', async () => {
+        const log = new MockLogSink();
+        const content = new MockContentStorage();
+        const address = 'store-address';
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+
+        // Existing history is 4 entries with incrementing count
+        const existing_entry_block: IEntryBlock = {
+            entries: [{
+                clock: 1,
+                value: { _id: publicKey, data: 1 }
+            } as IEntry,
+            {
+                clock: 2,
+                value: { _id: publicKey, data: 2 }
+            } as IEntry,
+            {
+                clock: 3,
+                value: { _id: publicKey, data: 3 }
+            } as IEntry,
+            {
+                clock: 4,
+                value: { _id: publicKey, data: 4 }
+            } as IEntry]
+        };
+
+        // Add a new entry (5) and also remove an existing one (4)
+        const new_entry_block: IEntryBlock = {
+            entries: [{
+                clock: 1,
+                value: { _id: publicKey, data: 1 }
+            } as IEntry,
+            {
+                clock: 2,
+                value: { _id: publicKey, data: 2 }
+            } as IEntry,
+            {
+                clock: 3,
+                value: { _id: publicKey, data: 3 }
+            } as IEntry,
+            {
+                clock: 5,
+                value: { _id: publicKey, data: 5 }
+            } as IEntry]
+        };
+        const entryBlockList: IEntryBlockList = await makeEntryBlockList([new_entry_block.entries], content, crypto);
+
+        const manifest: ICollectionManifest = {
+            name: 'my-store',
+            creatorPublicKey: publicKey,
+            publicAccess: AccessRights.Read,
+            entryBlockSize: 16
+        };
+
+        // ---
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        // ---
+
+        expect(validBlocks).toBeFalsy();
+        expect(log.warnings.length).toEqual(1);
+        expect(log.warnings[0]).toEqual('Update attempting to rewrite history was ignored (address = ' + address + ')');
+    });
+
+    it('passes validation for a block list that removes an non-effective entry', async () => {
+        const log = new MockLogSink();
+        const content = new MockContentStorage();
+        const address = 'store-address';
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+
+        // Existing history is 4 entries with incrementing count
+        const existing_entry_block: IEntryBlock = {
+            entries: [{
+                clock: 1,
+                value: { _id: publicKey, data: 1 }
+            } as IEntry,
+            {
+                clock: 2,
+                value: { _id: publicKey, data: 2 }
+            } as IEntry,
+            {
+                clock: 3,
+                value: { _id: publicKey, data: 3 }
+            } as IEntry,
+            {
+                clock: 4,
+                value: { _id: publicKey, data: 4 }
+            } as IEntry]
+        };
+
+        // Add a new entry (5) and also remove an existing non-effective one (3)
+        const new_entry_block: IEntryBlock = {
+            entries: [{
+                clock: 1,
+                value: { _id: publicKey, data: 1 }
+            } as IEntry,
+            {
+                clock: 2,
+                value: { _id: publicKey, data: 2 }
+            } as IEntry,
+            {
+                clock: 4,
+                value: { _id: publicKey, data: 4 }
+            } as IEntry,
+            {
+                clock: 5,
+                value: { _id: publicKey, data: 5 }
+            } as IEntry]
+        };
+        const entryBlockList: IEntryBlockList = await makeEntryBlockList([new_entry_block.entries], content, crypto);
+
+        const manifest: ICollectionManifest = {
+            name: 'my-store',
+            creatorPublicKey: publicKey,
+            publicAccess: AccessRights.Read,
+            entryBlockSize: 16
+        };
+
+        // ---
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        // ---
+
+        expect(validBlocks).toBeTruthy();
+        expect(log.warnings.length).toEqual(0);
+        expect(log.errors.length).toEqual(0);
     });
 });

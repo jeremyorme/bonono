@@ -57,12 +57,19 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
     return true;
 }
 
-export function areEntryBlocksValid(entryBlockList: IEntryBlockList, entryBlocks: (IEntryBlock | null)[], address: string, manifest: ICollectionManifest, log: ILogSink | null) {
-    return entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, address, log)) &&
-        areMergedEntriesValid(mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])), entryBlockList, address, log);
+export function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], originalEntryBlocks: (IEntryBlock | null)[], entryBlockList: IEntryBlockList, address: string, manifest: ICollectionManifest, log: ILogSink | null) {
+    if (!entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, address, log)))
+        return false;
+
+    return areMergedEntriesValid(
+        mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])),
+        mergeArrays(originalEntryBlocks.map(originalEntryBlock => originalEntryBlock ? originalEntryBlock.entries : [])),
+        entryBlockList,
+        address,
+        log);
 }
 
-export function areMergedEntriesValid(entries: (IEntry | null)[], entryBlockList: IEntryBlockList, address: string, log: ILogSink | null) {
+export function areMergedEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, address: string, log: ILogSink | null) {
     // check_strictly_increasing(IEntry.clock, IEntry.clock)
     if (!entries.reduce((p, c) => !p || !c ? null : p.clock < c.clock ? c : null)) {
         log?.warning('Update containing non-increasing clocks was ignored (address = ' + address + ')');
@@ -73,6 +80,20 @@ export function areMergedEntriesValid(entries: (IEntry | null)[], entryBlockList
     const lastEntry = entries.slice(-1)[0];
     if (lastEntry && lastEntry.clock != entryBlockList.clock) {
         log?.warning('Update containing incorrect clock was ignored (address = ' + address + ')');
+        return false;
+    }
+
+    // check_history(IEntryBlockList.entryBlockCids, IEntryBlockList.entryBlockCids)
+    const originalEntryMap: Map<string, IEntry> = new Map();
+    originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
+    const historicalEntryMap: Map<string, IEntry> = new Map();
+    const lastOriginalEntry = originalEntries.slice(-1)[0];
+    const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.clock : 0;
+    entries.forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+    const originalString = JSON.stringify([...originalEntryMap.entries()]);
+    const historicalString = JSON.stringify([...historicalEntryMap.entries()]);
+    if (originalString != historicalString) {
+        log?.warning('Update attempting to rewrite history was ignored (address = ' + address + ')');
         return false;
     }
 

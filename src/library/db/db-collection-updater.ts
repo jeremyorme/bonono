@@ -26,6 +26,13 @@ export interface IDbCollectionUpdater {
     numEntries(): number;
 }
 
+interface IEntryBlockListUpdate {
+    updated: IEntryBlockList;
+    original?: IEntryBlockList;
+    updatedBlocks?: (IEntryBlock | null)[];
+    originalBlocks?: (IEntryBlock | null)[];
+}
+
 export class DbCollectionUpdater implements IDbCollectionUpdater {
     private _options: ICollectionOptions;
     private _address: string;
@@ -90,56 +97,63 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (!await isCollectionValid(collection, this._address, this._log))
             return;
 
-        // Determine which entry block lists are new
-        const isEntryBlockListNew = (entryBlockList: IEntryBlockList) => {
-            const existingEntryBlockList = this._entryBlockLists.get(entryBlockList.publicKey);
-            return !existingEntryBlockList || entryBlockList.clock > existingEntryBlockList.clock;
-        };
-        const newEntryBlockLists = collection.entryBlockLists.filter(entryBlockList => isEntryBlockListNew(entryBlockList));
-        if (newEntryBlockLists.length == 0)
+        // Determine which entry block lists have been updated since last time
+        const entryBlockListUpdates = collection.entryBlockLists
+            .map(entryBlockList => (<IEntryBlockListUpdate>{ updated: entryBlockList, original: this._entryBlockLists.get(entryBlockList.publicKey) }))
+            .filter(entryBlockListUpdate => !entryBlockListUpdate.original || entryBlockListUpdate.updated.clock > entryBlockListUpdate.original.clock);
+        if (entryBlockListUpdates.length == 0)
             return;
 
         // Validate the new blocks
-        const blocksValid = await Promise.all(newEntryBlockLists.map(
-            entryBlockList => isEntryBlockListValid(entryBlockList, this._cryptoProvider, this._manifest, this._address, this._log)));
+        const blocksValid = await Promise.all(entryBlockListUpdates.map(
+            entryBlockListUpdate => isEntryBlockListValid(entryBlockListUpdate.updated, this._cryptoProvider, this._manifest, this._address, this._log)));
         if (!blocksValid.every(b => b))
             return;
 
         // Generate merged entry block lists sorted by public key
-        const mergedEntryBlockLists: Map<string, IEntryBlockList> = new Map(this._entryBlockLists);
-        for (const newEntryBlockList of newEntryBlockLists)
-            mergedEntryBlockLists.set(newEntryBlockList.publicKey, newEntryBlockList);
-        const sortedMergedEntryBlockLists = Array.from(mergedEntryBlockLists.values()).sort(byPublicKey);
+        const mergedEntryBlockListUpdates: Map<string, Partial<IEntryBlockListUpdate>> = new Map();
+        this._entryBlockLists.forEach((v, k) => mergedEntryBlockListUpdates.set(k, { original: v }));
+        for (const entryBlockListUpdate of entryBlockListUpdates)
+            mergedEntryBlockListUpdates.set(entryBlockListUpdate.updated.publicKey, entryBlockListUpdate);
+        const sortedMergedEntryBlockListUpdates = Array.from(mergedEntryBlockListUpdates.values()).sort(byPublicKey);
 
         // Try to load the entry blocks
-        const sortedMergedEntryBlocks = await Promise.all(sortedMergedEntryBlockLists.map(newEntryBlockList =>
-            Promise.all(newEntryBlockList.entryBlockCids.map(
-                entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)))));
+        for (const entryBlockListUpdate of sortedMergedEntryBlockListUpdates.values()) {
+            if (entryBlockListUpdate.original)
+                entryBlockListUpdate.originalBlocks = await Promise.all(entryBlockListUpdate.original.entryBlockCids.map(
+                    entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
+            if (entryBlockListUpdate.updated)
+                entryBlockListUpdate.updatedBlocks = await Promise.all(entryBlockListUpdate.updated.entryBlockCids.map(
+                    entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
+        }
 
-        // Validate the entry blocks
-        const newEntryBlockPublicKeys: Set<string> = new Set(newEntryBlockLists.map(
-            newEntryBlockList => newEntryBlockList.publicKey));
-        for (let i = 0; i < sortedMergedEntryBlockLists.length; ++i) {
-            const entryBlockList = sortedMergedEntryBlockLists[i];
-            const entryBlocks = sortedMergedEntryBlocks[i];
-            const isNew = newEntryBlockPublicKeys.has(entryBlockList.publicKey);
+        // Validate the updated entry blocks
+        for (let i = 0; i < sortedMergedEntryBlockListUpdates.length; ++i) {
+            const entryBlockListUpdate = sortedMergedEntryBlockListUpdates[i];
 
-            // Full validation for new block
-            if (isNew && !areEntryBlocksValid(entryBlockList, entryBlocks, this._address, this._manifest, this._log))
-                return;
-
-            // Basic null-check for old block
-            if (!isNew && entryBlocks.some(entryBlock => !entryBlock))
-                return;
+            if (entryBlockListUpdate.updated) {
+                // Full validation for new block
+                if (!entryBlockListUpdate.updatedBlocks || !areEntryBlocksValid(
+                    entryBlockListUpdate.updatedBlocks,
+                    entryBlockListUpdate.originalBlocks ? entryBlockListUpdate.originalBlocks : [],
+                    entryBlockListUpdate.updated,
+                    this._address,
+                    this._manifest,
+                    this._log))
+                    return;
+            }
         }
 
         // Everything loaded ok so complete update and return early if reindexing not needed
-        this._entryBlockLists = mergedEntryBlockLists;
+        mergedEntryBlockListUpdates.forEach((v, k) => {
+            if (v.updated)
+                this._entryBlockLists.set(k, v.updated);
+        });
         if (!await this._updateCollectionCid())
             return;
 
         // Regenerate the index and update the current clock
-        const entryBlocks = mergeArrays(sortedMergedEntryBlocks);
+        const entryBlocks = mergeArrays(sortedMergedEntryBlockListUpdates.map(x => x.updatedBlocks ? x.updatedBlocks : x.originalBlocks ? x.originalBlocks : []));
         const allEntries = mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : []));
         this._numEntries = allEntries.length;
 
