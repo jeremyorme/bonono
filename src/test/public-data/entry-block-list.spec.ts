@@ -1,5 +1,6 @@
 import { AccessRights } from '../../library/public-data/access-rights';
 import { ICollectionManifest } from '../../library/public-data/collection-manifest';
+import { ConflictResolution } from '../../library/public-data/conflict-resolution';
 import { IEntry } from '../../library/public-data/entry';
 import { IEntryBlock } from '../../library/public-data/entry-block';
 import { areEntryBlocksValid, IEntryBlockList, isEntryBlockListValid } from '../../library/public-data/entry-block-list';
@@ -25,7 +26,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -53,7 +55,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -84,7 +87,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -108,7 +112,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -137,7 +142,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await cryptoOwner.publicKey(),
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -165,7 +171,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         entryBlockList.clock = 2;
@@ -195,7 +202,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         entryBlockList.signature = 'sfasdfdskljgahsd';
@@ -227,7 +235,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: entryBlockList.publicKey,
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
 
@@ -268,7 +277,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
-            entryBlockSize: 2
+            entryBlockSize: 2,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -319,7 +329,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
-            entryBlockSize: 2
+            entryBlockSize: 2,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -362,7 +373,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -426,7 +438,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -490,7 +503,8 @@ describe('entry block list', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---

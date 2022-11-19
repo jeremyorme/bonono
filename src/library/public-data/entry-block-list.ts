@@ -6,6 +6,7 @@ import { ILogSink } from '../services/log-sink';
 import { IEntryBlock, isEntryBlockValid } from './entry-block';
 import { mergeArrays } from '../util/arrays';
 import { IEntry } from './entry';
+import { ConflictResolution } from './conflict-resolution';
 
 export interface IEntryBlockList {
     entryBlockCids: string[];
@@ -61,15 +62,16 @@ export function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], origina
     if (!entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, address, log)))
         return false;
 
-    return areMergedEntriesValid(
+    return areEntryBlockListEntriesValid(
         mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])),
         mergeArrays(originalEntryBlocks.map(originalEntryBlock => originalEntryBlock ? originalEntryBlock.entries : [])),
         entryBlockList,
+        manifest.conflictResolution,
         address,
         log);
 }
 
-export function areMergedEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, address: string, log: ILogSink | null) {
+export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, conflictResolution: ConflictResolution, address: string, log: ILogSink | null) {
     // check_strictly_increasing(IEntry.clock, IEntry.clock)
     if (!entries.reduce((p, c) => !p || !c ? null : p.clock < c.clock ? c : null)) {
         log?.warning('Update containing non-increasing clocks was ignored (address = ' + address + ')');
@@ -85,11 +87,17 @@ export function areMergedEntriesValid(entries: (IEntry | null)[], originalEntrie
 
     // check_history(IEntryBlockList.entryBlockCids, IEntryBlockList.entryBlockCids)
     const originalEntryMap: Map<string, IEntry> = new Map();
-    originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
     const historicalEntryMap: Map<string, IEntry> = new Map();
     const lastOriginalEntry = originalEntries.slice(-1)[0];
     const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.clock : 0;
-    entries.forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+    if (conflictResolution == ConflictResolution.LastWriteWins) {
+        originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
+        entries.forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+    }
+    else {
+        [...originalEntries].reverse().forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
+        [...entries].reverse().forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+    }
     const originalString = JSON.stringify([...originalEntryMap.entries()]);
     const historicalString = JSON.stringify([...historicalEntryMap.entries()]);
     if (originalString != historicalString) {

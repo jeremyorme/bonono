@@ -7,6 +7,7 @@ bonono
 ### Enumerations
 
 - [AccessRights](enums/AccessRights.md)
+- [ConflictResolution](enums/ConflictResolution.md)
 
 ### Interfaces
 

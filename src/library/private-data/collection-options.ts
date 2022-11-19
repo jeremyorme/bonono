@@ -1,5 +1,6 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
 import { AccessRights, accessRightsSchema } from '../public-data/access-rights';
+import { ConflictResolution, conflictResolutionSchema } from '../public-data/conflict-resolution';
 
 const ajv = new Ajv();
 
@@ -35,13 +36,21 @@ export interface ICollectionOptions {
      * @defaultValue 128
      */
     compactThreshold: number;
+
+    /**
+     * Conflict resolution mode.
+     * @remarks Specifies how to resolve multiple writes to the same key
+     * @defaultValue {@link ConflictResolution.LastWriteWins}
+     */
+    conflictResolution: ConflictResolution
 }
 
 export const defaultCollectionOptions: ICollectionOptions = {
     address: '',
     publicAccess: AccessRights.Read,
     entryBlockSize: 16,
-    compactThreshold: 128
+    compactThreshold: 128,
+    conflictResolution: ConflictResolution.LastWriteWins
 };
 
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
@@ -49,7 +58,8 @@ const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
         address: { type: 'string' },
         publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' },
-        compactThreshold: { type: 'uint32' }
+        compactThreshold: { type: 'uint32' },
+        conflictResolution: conflictResolutionSchema
     }
 };
 

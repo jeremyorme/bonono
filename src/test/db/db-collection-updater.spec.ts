@@ -10,6 +10,8 @@ import { IEntryBlockList } from '../../library/public-data/entry-block-list';
 import { IEntry } from '../../library/public-data/entry';
 import { makeEntryBlockList } from '../test_util/collection-utils';
 import { AccessRights } from '../../library/public-data/access-rights';
+import { ConflictResolution } from '../../library/public-data/conflict-resolution';
+import { IObject } from '../../library/public-data/object';
 
 describe('db-collection-updater', () => {
 
@@ -363,7 +365,7 @@ describe('db-collection-updater', () => {
         expect(updated).toBeTruthy();
     });
 
-    it('overwrites value in index when adding subsequent entry with existing key', async () => {
+    it('overwrites value in index when adding subsequent entry with existing key using last write wins', async () => {
         // Create collection (to be overwritten when add publishes)
         let collection: ICollection = {
             senderPublicKey: '',
@@ -377,7 +379,7 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5 });
+            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.LastWriteWins });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -397,9 +399,73 @@ describe('db-collection-updater', () => {
         const expectedIndex: Map<string, number> = new Map();
         for (const value of values)
             expectedIndex.set(value._id, value.value);
-        for (let i = 0; i < expectedIndex.entries.length; ++i)
-            expect(updater.index().get(expectedIndex.entries[i]._id))
-                .toHaveProperty('value', expectedIndex.entries[i].value);
+        for (const [id, value] of expectedIndex.entries())
+            expect(updater.index().get(id))
+                .toHaveProperty('value', value);
+
+        // Check the collection structure
+        const publicKey = await crypto.publicKey();
+        expect(collection).toHaveProperty('senderPublicKey', publicKey);
+        expect(collection).toHaveProperty('address', updater.address());
+        expect(collection).toHaveProperty('entryBlockLists');
+        expect(collection).toHaveProperty('addCount', values.length);
+        expect(collection.entryBlockLists).toHaveLength(1);
+        const entryBlockList = collection.entryBlockLists[0];
+        expect(entryBlockList).toHaveProperty('entryBlockCids');
+        expect(entryBlockList).toHaveProperty('clock', values.length);
+        expect(entryBlockList).toHaveProperty('publicKey', publicKey);
+        expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
+        expect(entryBlockList.entryBlockCids).toHaveLength(1);
+        const entryBlock = await content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
+        expect(entryBlock).toBeTruthy();
+        if (!entryBlock)
+            return;
+        expect(entryBlock).toHaveProperty('entries');
+        expect(entryBlock.entries).toHaveLength(values.length);
+        for (let i = 0; i < entryBlock.entries.length; ++i) {
+            const entries = entryBlock.entries;
+            expect(entries[i]).toHaveProperty('value', values[i]);
+            expect(entries[i]).toHaveProperty('clock', i + 1);
+        }
+    });
+
+    it('does not overwrite value in index when adding subsequent entry with existing key using first write wins', async () => {
+        // Create collection (to be overwritten when add publishes)
+        let collection: ICollection = {
+            senderPublicKey: '',
+            address: '',
+            entryBlockLists: [],
+            addCount: NaN
+        };
+
+        // Construct an updater with private write access and add an entry
+        const crypto = new MockCryptoProvider('test-id');
+        const content = new MockContentStorage();
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.FirstWriteWins });
+        await updater.init('test');
+        const values = [
+            { _id: 'key-1', value: 1 },
+            { _id: 'key-2', value: 2 },
+            { _id: 'key-3', value: 3 },
+            { _id: 'key-2', value: 4 }];
+        await updater.add(values.slice(0, -1));
+
+        // ---
+        await updater.add(values.slice(-1));
+        // ---
+
+        // Check the entries were added
+        expect(updater.numEntries()).toEqual(values.length);
+
+        // Check the index was correctly populated
+        const expectedIndex: Map<string, number> = new Map();
+        for (const value of [...values].reverse())
+            expectedIndex.set(value._id, value.value);
+        for (const [id, value] of expectedIndex.entries())
+            expect(updater.index().get(id))
+                .toHaveProperty('value', value);
 
         // Check the collection structure
         const publicKey = await crypto.publicKey();
@@ -700,6 +766,80 @@ describe('db-collection-updater', () => {
 
         expect(updater.numEntries()).toEqual(1);
         expect(updater.index().has('entry-0')).toBeTruthy();
+        expect(updated).toBeTruthy();
+    });
+
+    it('sets the last value for a key when merging with last write wins', async () => {
+        const content = new MockContentStorage();
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, conflictResolution: ConflictResolution.LastWriteWins });
+        await updater.init('test');
+        let updated = false;
+        updater.onUpdated(() => { updated = true; });
+
+        const entries: IEntry[] = [{
+            value: { _id: 'entry-0', val: 1 } as IObject,
+            clock: 1
+        }, {
+            value: { _id: 'entry-0', val: 2 } as IObject,
+            clock: 2
+        }];
+
+        const collection: ICollection = {
+            senderPublicKey: publicKey,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([entries], content, crypto)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection);
+        // ---
+
+        expect(updater.numEntries()).toEqual(2);
+        expect(updater.index().has('entry-0')).toBeTruthy();
+        expect(updater.index().get('entry-0')).toEqual(entries[1].value);
+        expect(updated).toBeTruthy();
+    });
+
+    it('sets the first value for a key when merging with first write wins', async () => {
+        const content = new MockContentStorage();
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, conflictResolution: ConflictResolution.FirstWriteWins });
+        await updater.init('test');
+        let updated = false;
+        updater.onUpdated(() => { updated = true; });
+
+        const entries: IEntry[] = [{
+            value: { _id: 'entry-0', val: 1 } as IObject,
+            clock: 1
+        }, {
+            value: { _id: 'entry-0', val: 2 } as IObject,
+            clock: 2
+        }];
+
+        const collection: ICollection = {
+            senderPublicKey: publicKey,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([entries], content, crypto)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection);
+        // ---
+
+        expect(updater.numEntries()).toEqual(2);
+        expect(updater.index().has('entry-0')).toBeTruthy();
+        expect(updater.index().get('entry-0')).toEqual(entries[0].value);
         expect(updated).toBeTruthy();
     });
 

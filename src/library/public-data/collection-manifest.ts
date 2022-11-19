@@ -1,6 +1,7 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
 import { ILogSink } from '../services/log-sink';
 import { AccessRights, accessRightsSchema } from './access-rights';
+import { ConflictResolution, conflictResolutionSchema } from './conflict-resolution';
 
 const ajv = new Ajv();
 
@@ -9,6 +10,7 @@ export interface ICollectionManifest {
     creatorPublicKey: string;
     publicAccess: AccessRights;
     entryBlockSize: number;
+    conflictResolution: ConflictResolution;
 }
 
 const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
@@ -16,7 +18,8 @@ const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
         name: { type: 'string' },
         creatorPublicKey: { type: 'string' },
         publicAccess: accessRightsSchema,
-        entryBlockSize: { type: 'uint32' }
+        entryBlockSize: { type: 'uint32' },
+        conflictResolution: conflictResolutionSchema
     }
 };
 

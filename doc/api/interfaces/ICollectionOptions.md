@@ -10,6 +10,7 @@ Options for creating/opening a collection.
 
 - [address](ICollectionOptions.md#address)
 - [compactThreshold](ICollectionOptions.md#compactthreshold)
+- [conflictResolution](ICollectionOptions.md#conflictresolution)
 - [entryBlockSize](ICollectionOptions.md#entryblocksize)
 - [publicAccess](ICollectionOptions.md#publicaccess)
 
@@ -45,6 +46,22 @@ be triggered.
 **`Default Value`**
 
 128
+
+___
+
+### conflictResolution
+
+• **conflictResolution**: [`ConflictResolution`](../enums/ConflictResolution.md)
+
+Conflict resolution mode.
+
+**`Remarks`**
+
+Specifies how to resolve multiple writes to the same key
+
+**`Default Value`**
+
+[LastWriteWins](../enums/ConflictResolution.md#lastwritewins)
 
 ___
 

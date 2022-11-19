@@ -1,5 +1,6 @@
 import { AccessRights } from '../../library/public-data/access-rights';
 import { ICollectionManifest, isCollectionManifestValid } from '../../library/public-data/collection-manifest';
+import { ConflictResolution } from '../../library/public-data/conflict-resolution';
 import { MockCryptoProvider } from '../test_util/mock-crypto-provider';
 import { MockLogSink } from '../test_util/mock-log-sink';
 
@@ -13,7 +14,8 @@ describe('collection manifest', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -48,7 +50,8 @@ describe('collection manifest', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 1.3
+            entryBlockSize: 1.3,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---

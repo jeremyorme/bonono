@@ -12,6 +12,7 @@ import { ILocalStorage } from '../services/local-storage';
 import { AccessRights } from '../public-data/access-rights';
 import { IObject } from '../public-data/object';
 import { ILogSink } from '../services/log-sink';
+import { ConflictResolution } from '../public-data/conflict-resolution';
 
 export interface IDbCollectionUpdater {
     init(name: string): Promise<boolean>;
@@ -74,7 +75,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 name,
                 creatorPublicKey: this._selfPublicKey,
                 publicAccess: this._options.publicAccess,
-                entryBlockSize: this._options.entryBlockSize
+                entryBlockSize: this._options.entryBlockSize,
+                conflictResolution: this._options.conflictResolution
             };
             this._address = await this._contentAccessor.putObject(this._manifest);
         }
@@ -157,9 +159,10 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         const allEntries = mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : []));
         this._numEntries = allEntries.length;
 
-        allEntries.sort(byClock);
         if (allEntries.length > 0)
             this._clock = allEntries.slice(-1)[0].clock;
+        if (this._manifest.conflictResolution == ConflictResolution.FirstWriteWins)
+            allEntries.reverse();
 
         this._index.clear();
         if (this._manifest.publicAccess != AccessRights.None) {
@@ -215,7 +218,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             if (obj._id != this._selfPublicKey)
                 return;
 
-            this._index.set(obj._id, obj);
+            if (this._manifest.conflictResolution != ConflictResolution.FirstWriteWins || !this._index.has(obj._id))
+                this._index.set(obj._id, obj);
             this._numEntries = 1;
 
             const entry: IEntry = { value: obj, clock: ++this._clock };
@@ -231,7 +235,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         }
         else {
             for (const obj of objs)
-                this._index.set(obj._id, obj);
+                if (this._manifest.conflictResolution != ConflictResolution.FirstWriteWins || !this._index.has(obj._id))
+                    this._index.set(obj._id, obj);
             this._numEntries += objs.length;
 
             const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfPublicKey);

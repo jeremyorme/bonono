@@ -1,5 +1,6 @@
 import { AccessRights } from '../../library/public-data/access-rights';
 import { ICollectionManifest } from '../../library/public-data/collection-manifest';
+import { ConflictResolution } from '../../library/public-data/conflict-resolution';
 import { IEntry } from '../../library/public-data/entry';
 import { IEntryBlock, isEntryBlockValid } from '../../library/public-data/entry-block';
 import { MockCryptoProvider } from '../test_util/mock-crypto-provider';
@@ -23,7 +24,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -48,7 +50,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -74,7 +77,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -104,7 +108,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -136,7 +141,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
@@ -166,7 +172,8 @@ describe('entry', () => {
             name: 'my-store',
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16
+            entryBlockSize: 16,
+            conflictResolution: ConflictResolution.LastWriteWins
         };
 
         // ---
