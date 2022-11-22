@@ -76,7 +76,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 creatorPublicKey: this._selfPublicKey,
                 publicAccess: this._options.publicAccess,
                 entryBlockSize: this._options.entryBlockSize,
-                conflictResolution: this._options.conflictResolution
+                conflictResolution: this._options.conflictResolution,
+                complexity: this._options.complexity
             };
             this._address = await this._contentAccessor.putObject(this._manifest);
         }
@@ -130,21 +131,17 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         }
 
         // Validate the updated entry blocks
-        for (let i = 0; i < sortedMergedEntryBlockListUpdates.length; ++i) {
-            const entryBlockListUpdate = sortedMergedEntryBlockListUpdates[i];
-
-            if (entryBlockListUpdate.updated) {
-                // Full validation for new block
-                if (!entryBlockListUpdate.updatedBlocks || !areEntryBlocksValid(
-                    entryBlockListUpdate.updatedBlocks,
-                    entryBlockListUpdate.originalBlocks ? entryBlockListUpdate.originalBlocks : [],
-                    entryBlockListUpdate.updated,
-                    this._address,
-                    this._manifest,
-                    this._log))
-                    return;
-            }
-        }
+        if (!(await Promise.all(sortedMergedEntryBlockListUpdates.map(async entryBlockListUpdate => {
+            return !!entryBlockListUpdate.updated && !!entryBlockListUpdate.updatedBlocks && await areEntryBlocksValid(
+                entryBlockListUpdate.updatedBlocks,
+                entryBlockListUpdate.originalBlocks ? entryBlockListUpdate.originalBlocks : [],
+                entryBlockListUpdate.updated,
+                this._cryptoProvider,
+                this._address,
+                this._manifest,
+                this._log);
+        }))).every(x => x))
+            return;
 
         // Everything loaded ok so complete update and return early if reindexing not needed
         mergedEntryBlockListUpdates.forEach((v, k) => {
@@ -209,6 +206,15 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (!this.canWrite() || objs.length == 0)
             return;
 
+        const makeEntry = async (obj: IObject) => {
+            const entry: IEntry = { clock: ++this._clock, value: obj };
+            if (this._manifest.complexity > 0) {
+                const [signature, nonce] = await this._cryptoProvider.sign_complex(entry, this._address, this._manifest.complexity);
+                entry.proofOfWork = { signature, nonce };
+            }
+            return entry;
+        }
+
         var myEntryBlockList: IEntryBlockList;
         if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
             if (objs.length > 1)
@@ -222,7 +228,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 this._index.set(obj._id, obj);
             this._numEntries = 1;
 
-            const entry: IEntry = { value: obj, clock: ++this._clock };
+            const entry: IEntry = await makeEntry(obj);
             const entryBlock: IEntryBlock = { entries: [entry] };
             const entryBlockCid = await this._contentAccessor.putObject(entryBlock);
             myEntryBlockList = {
@@ -276,7 +282,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
             const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
             const encryptedObjs = await Promise.all(objs.map(obj => encrypt(obj)));
-            let newBlockEntries = [...lastEntries, ...encryptedObjs.map(obj => ({ value: obj, clock: ++this._clock }))];
+            let newBlockEntries = [...lastEntries, ...await Promise.all(encryptedObjs.map(obj => makeEntry(obj)))];
 
             const newBlocks: IEntryBlock[] = [];
             while (newBlockEntries.length > 0) {

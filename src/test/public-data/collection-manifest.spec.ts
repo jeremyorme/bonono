@@ -15,7 +15,8 @@ describe('collection manifest', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -51,7 +52,8 @@ describe('collection manifest', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 1.3,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---

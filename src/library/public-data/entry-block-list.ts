@@ -58,8 +58,8 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
     return true;
 }
 
-export function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], originalEntryBlocks: (IEntryBlock | null)[], entryBlockList: IEntryBlockList, address: string, manifest: ICollectionManifest, log: ILogSink | null) {
-    if (!entryBlocks.every((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, address, log)))
+export async function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], originalEntryBlocks: (IEntryBlock | null)[], entryBlockList: IEntryBlockList, cryptoProvider: ICryptoProvider, address: string, manifest: ICollectionManifest, log: ILogSink | null) {
+    if (!(await Promise.all(entryBlocks.map((entryBlock, i) => isEntryBlockValid(entryBlock, i == entryBlockList.entryBlockCids.length - 1, manifest, entryBlockList.publicKey, cryptoProvider, address, log)))).every(e => e))
         return false;
 
     return areEntryBlockListEntriesValid(

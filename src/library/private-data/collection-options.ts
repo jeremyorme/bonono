@@ -42,7 +42,14 @@ export interface ICollectionOptions {
      * @remarks Specifies how to resolve multiple writes to the same key
      * @defaultValue {@link ConflictResolution.LastWriteWins}
      */
-    conflictResolution: ConflictResolution
+    conflictResolution: ConflictResolution,
+
+    /**
+     * Entry signature complexity.
+     * @remarks Required complexity of entry proof-of-work signatures. If zero, no signature is required.
+     * @defaultValue 0
+     */
+    complexity: number;
 }
 
 export const defaultCollectionOptions: ICollectionOptions = {
@@ -50,7 +57,8 @@ export const defaultCollectionOptions: ICollectionOptions = {
     publicAccess: AccessRights.Read,
     entryBlockSize: 16,
     compactThreshold: 128,
-    conflictResolution: ConflictResolution.LastWriteWins
+    conflictResolution: ConflictResolution.LastWriteWins,
+    complexity: 0
 };
 
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
@@ -59,7 +67,8 @@ const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
         publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' },
         compactThreshold: { type: 'uint32' },
-        conflictResolution: conflictResolutionSchema
+        conflictResolution: conflictResolutionSchema,
+        complexity: { type: 'uint32' }
     }
 };
 

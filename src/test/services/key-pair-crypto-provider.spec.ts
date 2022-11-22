@@ -40,6 +40,18 @@ describe('key-pair-crypto-provider', () => {
         expect(signature).toMatch(/^[A-HJ-NP-Za-km-z1-9]{87,88}$/);
     });
 
+    it('generates a signature with complexity', async () => {
+        const crypto = new KeyPairCryptoProvider(new MockLocalStorage());
+        const prefix = 'pre';
+        const complexity = 4;
+
+        // ---
+        const [signature, _] = await crypto.sign_complex({ key: 'value' }, prefix, complexity);
+        // ---
+
+        expect(KeyPairCryptoProvider.complexity(signature)).toBeGreaterThanOrEqual(complexity);
+    });
+
     it('verifies a signature', async () => {
         const crypto1 = new KeyPairCryptoProvider(new MockLocalStorage());
         const crypto2 = new KeyPairCryptoProvider(new MockLocalStorage());
@@ -53,6 +65,21 @@ describe('key-pair-crypto-provider', () => {
         expect(valid).toBeTruthy();
     });
 
+    it('verifies a signature with complexity', async () => {
+        const crypto1 = new KeyPairCryptoProvider(new MockLocalStorage());
+        const crypto2 = new KeyPairCryptoProvider(new MockLocalStorage());
+        const obj = { key: 'value' };
+        const prefix = 'pre';
+        const complexity = 4;
+        const [signature, nonce] = await crypto1.sign_complex(obj, prefix, complexity);
+
+        // ---
+        const valid = await crypto2.verify_complex(obj, signature, await crypto1.publicKey(), prefix, nonce, complexity);
+        // ---
+
+        expect(valid).toBeTruthy();
+    });
+
     it('fails to verify incorrect signature', async () => {
         const crypto1 = new KeyPairCryptoProvider(new MockLocalStorage());
         const crypto2 = new KeyPairCryptoProvider(new MockLocalStorage());
@@ -61,6 +88,22 @@ describe('key-pair-crypto-provider', () => {
 
         // ---
         const valid = await crypto1.verify(obj, signature, await crypto2.publicKey());
+        // ---
+
+        expect(valid).toBeFalsy();
+    });
+
+    it('fails to verify a signature with inadequate complexity', async () => {
+        const crypto1 = new KeyPairCryptoProvider(new MockLocalStorage());
+        const crypto2 = new KeyPairCryptoProvider(new MockLocalStorage());
+        const obj = { key: 'value' };
+        const prefix = 'pre';
+        const complexity = 4;
+        const [signature, nonce] = await crypto1.sign_complex(obj, prefix, complexity);
+        const required_complexity = 32;
+
+        // ---
+        const valid = await crypto2.verify_complex(obj, signature, await crypto1.publicKey(), prefix, nonce, required_complexity);
         // ---
 
         expect(valid).toBeFalsy();

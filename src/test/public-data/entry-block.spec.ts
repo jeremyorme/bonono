@@ -25,11 +25,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeTruthy();
@@ -51,11 +52,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -78,11 +80,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -109,11 +112,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, false, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, false, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -142,11 +146,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeFalsy();
@@ -173,11 +178,12 @@ describe('entry', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, address, log);
+        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
         // ---
 
         expect(valid).toBeFalsy();

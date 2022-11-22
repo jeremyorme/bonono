@@ -10,6 +10,7 @@ Options for creating/opening a collection.
 
 - [address](ICollectionOptions.md#address)
 - [compactThreshold](ICollectionOptions.md#compactthreshold)
+- [complexity](ICollectionOptions.md#complexity)
 - [conflictResolution](ICollectionOptions.md#conflictresolution)
 - [entryBlockSize](ICollectionOptions.md#entryblocksize)
 - [publicAccess](ICollectionOptions.md#publicaccess)
@@ -46,6 +47,22 @@ be triggered.
 **`Default Value`**
 
 128
+
+___
+
+### complexity
+
+• **complexity**: `number`
+
+Entry signature complexity.
+
+**`Remarks`**
+
+Required complexity of entry proof-of-work signatures. If zero, no signature is required.
+
+**`Default Value`**
+
+0
 
 ___
 

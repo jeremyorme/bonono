@@ -11,6 +11,7 @@ export interface ICollectionManifest {
     publicAccess: AccessRights;
     entryBlockSize: number;
     conflictResolution: ConflictResolution;
+    complexity: number;
 }
 
 const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
@@ -19,7 +20,8 @@ const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
         creatorPublicKey: { type: 'string' },
         publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' },
-        conflictResolution: conflictResolutionSchema
+        conflictResolution: conflictResolutionSchema,
+        complexity: { type: 'uint32' }
     }
 };
 

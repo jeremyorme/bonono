@@ -3,6 +3,7 @@ import { IEntry, entrySchema, isEntryValid } from './entry';
 import { ILogSink } from '../services/log-sink';
 import { AccessRights } from './access-rights';
 import { ICollectionManifest } from './collection-manifest';
+import { ICryptoProvider } from '../services/crypto-provider';
 
 const ajv = new Ajv();
 
@@ -18,7 +19,7 @@ const entryBlockSchema: JTDSchemaType<IEntryBlock> = {
 
 const validateEntryBlock = ajv.compile(entryBlockSchema);
 
-export function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolean, manifest: ICollectionManifest, publicKey: string, address: string, log: ILogSink | null) {
+export async function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolean, manifest: ICollectionManifest, publicKey: string, cryptoProvider: ICryptoProvider, address: string, log: ILogSink | null) {
     // check_exists(IEntryBlock)
     if (!entryBlock) {
         log?.warning('Update referencing missing block was ignored (address = ' + address + ')');
@@ -45,5 +46,5 @@ export function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: boolea
         return false;
     }
 
-    return entryBlock.entries.every(e => isEntryValid(e, manifest, publicKey, address, log));
+    return (await Promise.all(entryBlock.entries.map(e => isEntryValid(e, manifest, publicKey, cryptoProvider, address, log)))).every(e => e);
 }

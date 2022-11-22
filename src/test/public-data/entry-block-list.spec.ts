@@ -27,7 +27,8 @@ describe('entry block list', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -56,7 +57,8 @@ describe('entry block list', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -68,7 +70,7 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeTruthy();
@@ -88,7 +90,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -113,7 +116,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -143,7 +147,8 @@ describe('entry block list', () => {
             creatorPublicKey: await cryptoOwner.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -172,7 +177,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         entryBlockList.clock = 2;
@@ -203,7 +209,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         entryBlockList.signature = 'sfasdfdskljgahsd';
@@ -236,7 +243,8 @@ describe('entry block list', () => {
             creatorPublicKey: entryBlockList.publicKey,
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
 
@@ -278,7 +286,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 2,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -290,7 +299,7 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
@@ -330,7 +339,8 @@ describe('entry block list', () => {
             creatorPublicKey: await crypto.publicKey(),
             publicAccess: AccessRights.Read,
             entryBlockSize: 2,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
@@ -342,7 +352,7 @@ describe('entry block list', () => {
         expect(log.warnings.length).toEqual(0);
 
         // ---
-        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid(await Promise.all(entryBlockList.entryBlockCids.map(cid => content.getObject<IEntryBlock>(cid))), [], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
@@ -374,11 +384,12 @@ describe('entry block list', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
@@ -439,11 +450,12 @@ describe('entry block list', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeFalsy();
@@ -504,11 +516,12 @@ describe('entry block list', () => {
             creatorPublicKey: publicKey,
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins
+            conflictResolution: ConflictResolution.LastWriteWins,
+            complexity: 0
         };
 
         // ---
-        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, address, manifest, log);
+        const validBlocks = await areEntryBlocksValid([new_entry_block], [existing_entry_block], entryBlockList, crypto, address, manifest, log);
         // ---
 
         expect(validBlocks).toBeTruthy();
