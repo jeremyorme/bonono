@@ -845,6 +845,50 @@ describe('db-collection-updater', () => {
         expect(updated).toBeTruthy();
     });
 
+    it('merges entries with same clock in public key order', async () => {
+        const content = new MockContentStorage();
+        const crypto_a = new MockCryptoProvider('test-id-a');
+        const crypto_b = new MockCryptoProvider('test-id-b');
+        const publicKey_a = await crypto_a.publicKey();
+        const publicKey_b = await crypto_b.publicKey();
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto_a, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+        await updater.init('test');
+        let updated = false;
+        updater.onUpdated(() => { updated = true; });
+
+        const key = 'entry';
+        const value_a = 'a';
+        const entry_a: IEntry = {
+            value: { _id: key, value: value_a } as IObject,
+            clock: 1
+        };
+
+        const value_b = 'b';
+        const entry_b: IEntry = {
+            value: { _id: key, value: value_b } as IObject,
+            clock: 1
+        };
+
+        const collection: ICollection = {
+            senderPublicKey: publicKey_a,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([[entry_b]], content, crypto_b), await makeEntryBlockList([[entry_a]], content, crypto_a)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection);
+        // ---
+
+        expect(updater.numEntries()).toEqual(2);
+        expect(updater.index().has(key)).toBeTruthy();
+        expect(updater.index().get(key)).toHaveProperty('value', publicKey_a > publicKey_b ? value_a : value_b);
+        expect(updated).toBeTruthy();
+    });
+
     it('merges a valid collection requiring proof of work into an empty collection', async () => {
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');

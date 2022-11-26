@@ -28,6 +28,7 @@ export interface IDbCollectionUpdater {
 }
 
 interface IEntryBlockListUpdate {
+    publicKey: string;
     updated: IEntryBlockList;
     original?: IEntryBlockList;
     updatedBlocks?: (IEntryBlock | null)[];
@@ -102,7 +103,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Determine which entry block lists have been updated since last time
         const entryBlockListUpdates = collection.entryBlockLists
-            .map(entryBlockList => (<IEntryBlockListUpdate>{ updated: entryBlockList, original: this._entryBlockLists.get(entryBlockList.publicKey) }))
+            .map(entryBlockList => (<IEntryBlockListUpdate>{ publicKey: entryBlockList.publicKey, updated: entryBlockList, original: this._entryBlockLists.get(entryBlockList.publicKey) }))
             .filter(entryBlockListUpdate => !entryBlockListUpdate.original || entryBlockListUpdate.updated.clock > entryBlockListUpdate.original.clock);
         if (entryBlockListUpdates.length == 0)
             return;
@@ -181,7 +182,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         const collection: ICollection = {
             senderPublicKey: this._selfPublicKey,
             address: this._address,
-            entryBlockLists: Array.from(this._entryBlockLists.values()).sort(byPublicKey),
+            entryBlockLists: Array.from(this._entryBlockLists.values()),
             addCount: this._addCount
         };
 
