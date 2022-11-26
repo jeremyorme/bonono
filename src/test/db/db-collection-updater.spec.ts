@@ -787,7 +787,7 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(0);
     });
 
-    it('does not add multiple objects to read-any-write-own store', async () => {
+    it('adds last object to read-any-write-own store with last write wins', async () => {
         const crypto = new MockCryptoProvider('test-id-1');
 
         // Identity 'test-id-1' creates read-any-write-own store
@@ -796,16 +796,45 @@ describe('db-collection-updater', () => {
             null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
+        const firstValue = 'my-data';
+        const lastValue = 'my-data-2';
 
         // ---
         await updater.add([
-            { _id: publicKey, value: 'my-data' },
-            { _id: publicKey, value: 'my-data-2' }
+            { _id: publicKey, value: firstValue },
+            { _id: publicKey, value: lastValue }
         ]);
         // ---
 
         // Check no entry was not added
-        expect(updater.numEntries()).toEqual(0);
+        expect(updater.numEntries()).toEqual(1);
+        expect(updater.index().has(publicKey)).toBeTruthy();
+        expect(updater.index().get(publicKey)).toHaveProperty('value', lastValue);
+    });
+
+    it('adds first object to read-any-write-own store with first write wins', async () => {
+        const crypto = new MockCryptoProvider('test-id-1');
+
+        // Identity 'test-id-1' creates read-any-write-own store
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            new MockContentStorage(), crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn, conflictResolution: ConflictResolution.FirstWriteWins });
+        await updater.init('test');
+        const publicKey = await crypto.publicKey();
+        const firstValue = 'my-data';
+        const lastValue = 'my-data-2';
+
+        // ---
+        await updater.add([
+            { _id: publicKey, value: firstValue },
+            { _id: publicKey, value: lastValue }
+        ]);
+        // ---
+
+        // Check no entry was not added
+        expect(updater.numEntries()).toEqual(1);
+        expect(updater.index().has(publicKey)).toBeTruthy();
+        expect(updater.index().get(publicKey)).toHaveProperty('value', firstValue);
     });
 
     //

@@ -231,15 +231,14 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         }
 
         var myEntryBlockList: IEntryBlockList;
+        const lastWriteWins = this._manifest.conflictResolution == ConflictResolution.LastWriteWins;
         if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
-            if (objs.length > 1)
-                return;
-            const obj = objs[0];
+            var obj = objs[lastWriteWins ? objs.length - 1 : 0];
 
             if (obj._id != this._selfPublicKey)
                 return;
 
-            if (this._manifest.conflictResolution != ConflictResolution.FirstWriteWins || !this._index.has(obj._id))
+            if (lastWriteWins || !this._index.has(obj._id))
                 this._index.set(obj._id, obj);
             this._numEntries = 1;
 
@@ -256,7 +255,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         }
         else {
             for (const obj of objs)
-                if (this._manifest.conflictResolution != ConflictResolution.FirstWriteWins || !this._index.has(obj._id))
+                if (lastWriteWins || !this._index.has(obj._id))
                     this._index.set(obj._id, obj);
             this._numEntries += objs.length;
 
