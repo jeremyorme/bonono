@@ -179,23 +179,37 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     }
 
     private async _updateCollectionCid(): Promise<boolean> {
+
+        // Store collection locally with all the entry block lists we have
         const collection: ICollection = {
             senderPublicKey: this._selfPublicKey,
             address: this._address,
             entryBlockLists: Array.from(this._entryBlockLists.values()),
             addCount: this._addCount
         };
-
         const newCollectionCid = await this._contentAccessor.putObject(collection);
 
+        // If the CID didn't change, the content is identical so nothing more to do
         if (newCollectionCid == this._collectionCid)
             return false;
 
+        // Otherwise, store the new CID
         this._collectionCid = newCollectionCid;
         if (!await this._localStorage.setItem('/db/' + this._address, this._collectionCid))
             return false;
 
-        this._publish(collection);
+        // If our entry block list was updated, publish it for other peers to merge
+        const myEntryBlockList = this._entryBlockLists.get(this._selfPublicKey);
+        if (myEntryBlockList != null) {
+            this._publish({
+                senderPublicKey: this._selfPublicKey,
+                address: this._address,
+                entryBlockLists: [myEntryBlockList],
+                addCount: this._addCount
+            });
+        }
+
+        // Notify the update locally
         for (const cb of this._updatedCallbacks)
             cb();
 
