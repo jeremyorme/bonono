@@ -3,4 +3,4 @@ function alphaPropSortFn(propName: string) {
 }
 
 export const byPublicKey = alphaPropSortFn('publicKey');
-export const byClock = (a, b) => a.clock - b.clock;
+export const entryByClock = (a, b) => a.value._clock - b.value._clock;

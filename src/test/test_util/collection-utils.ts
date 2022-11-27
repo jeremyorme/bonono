@@ -10,7 +10,7 @@ export async function makeEntryBlockList(entries: IEntry[][], content: IContentA
 
     const entryBlockList: IEntryBlockList = {
         entryBlockCids: await Promise.all(entryBlocks.map(entryBlock => content.putObject(entryBlock))),
-        clock: Math.max(...mergeArrays(entryBlocks.map(eb => eb.entries)).map(e => e.clock)),
+        clock: Math.max(...mergeArrays(entryBlocks.map(eb => eb.entries)).map(e => e.value._clock)),
         publicKey: await crypto.publicKey(),
         signature: ''
     };

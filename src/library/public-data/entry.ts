@@ -8,14 +8,12 @@ import { ICryptoProvider } from '../services/crypto-provider';
 
 export interface IEntry {
     value: IObject;
-    clock: number;
     proofOfWork?: IProofOfWork;
 }
 
 export const entrySchema: JTDSchemaType<IEntry> = {
     properties: {
-        value: objectSchema,
-        clock: { type: 'uint32' }
+        value: objectSchema
     },
     optionalProperties: {
         proofOfWork: proofOfWorkSchema
@@ -33,7 +31,7 @@ export async function isEntryValid(entry: IEntry, manifest: ICollectionManifest,
 
     // check_complexity(IEntry.proofOfWork, ICollectionManifest.complexity)
     if (manifest.complexity > 0 && (entry.proofOfWork == null ||
-        !await cryptoProvider.verify_complex({ clock: entry.clock, value: entry.value }, entry.proofOfWork.signature, publicKey, address, entry.proofOfWork.nonce, manifest.complexity))) {
+        !await cryptoProvider.verify_complex({ value: entry.value }, entry.proofOfWork.signature, publicKey, address, entry.proofOfWork.nonce, manifest.complexity))) {
         log?.warning('Update to collection containing entry with missing or inadequate proof-of-work was ignored ' +
             '(entry id = ' + entry.value?._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
         return false;

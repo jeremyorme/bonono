@@ -11,10 +11,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -39,10 +36,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: publicKey }
-        };
+        const entry: IEntry = { value: { _id: publicKey, _clock: 1, } };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -67,10 +61,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1, } };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -97,10 +88,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const complexity = 4;
         const [signature, nonce] = await crypto.sign_complex(entry, address, complexity);
         entry.proofOfWork = { signature, nonce };
@@ -128,10 +116,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const complexity = 4;
         const [signature, nonce] = await crypto.sign_complex(entry, address, complexity);
         entry.proofOfWork = { signature, nonce };
@@ -162,10 +147,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',

@@ -12,10 +12,7 @@ describe('collection', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const collection: ICollection = {
             senderPublicKey: publicKey,
             address: address,
@@ -52,10 +49,7 @@ describe('collection', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const collection: ICollection = {
             senderPublicKey: publicKey,
             address: address,

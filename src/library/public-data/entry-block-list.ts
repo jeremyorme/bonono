@@ -73,14 +73,14 @@ export async function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], o
 
 export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, conflictResolution: ConflictResolution, address: string, log: ILogSink | null) {
     // check_strictly_increasing(IEntry.clock, IEntry.clock)
-    if (!entries.reduce((p, c) => !p || !c ? null : p.clock < c.clock ? c : null)) {
+    if (!entries.reduce((p, c) => !p || !c ? null : p.value._clock < c.value._clock ? c : null)) {
         log?.warning('Update containing non-increasing clocks was ignored (address = ' + address + ')');
         return false;
     }
 
     // check_max(IEntryBlockList.clock, IEntry.clock)
     const lastEntry = entries.slice(-1)[0];
-    if (lastEntry && lastEntry.clock != entryBlockList.clock) {
+    if (lastEntry && lastEntry.value._clock != entryBlockList.clock) {
         log?.warning('Update containing incorrect clock was ignored (address = ' + address + ')');
         return false;
     }
@@ -89,14 +89,14 @@ export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], origin
     const originalEntryMap: Map<string, IEntry> = new Map();
     const historicalEntryMap: Map<string, IEntry> = new Map();
     const lastOriginalEntry = originalEntries.slice(-1)[0];
-    const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.clock : 0;
+    const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.value._clock : 0;
     if (conflictResolution == ConflictResolution.LastWriteWins) {
         originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
-        entries.forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+        entries.forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
     }
     else {
         [...originalEntries].reverse().forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
-        [...entries].reverse().forEach(e => { if (e && e.clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+        [...entries].reverse().forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
     }
     const originalString = JSON.stringify([...originalEntryMap.entries()]);
     const historicalString = JSON.stringify([...historicalEntryMap.entries()]);

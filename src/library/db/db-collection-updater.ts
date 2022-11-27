@@ -4,7 +4,7 @@ import { ICollectionManifest, isCollectionManifestValid } from '../public-data/c
 import { ICollection, isCollectionValid } from '../public-data/collection';
 import { IEntryBlock } from '../public-data/entry-block';
 import { IEntry } from '../public-data/entry';
-import { byClock, byPublicKey } from '../util/sort-comparators';
+import { entryByClock, byPublicKey } from '../util/sort-comparators';
 import { mergeArrays } from '../util/arrays';
 import { IContentAccessor } from '../services/content-accessor';
 import { ICryptoProvider } from '../services/crypto-provider';
@@ -158,7 +158,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         this._numEntries = allEntries.length;
 
         if (allEntries.length > 0)
-            this._clock = allEntries.slice(-1)[0].clock;
+            this._clock = allEntries.slice(-1)[0].value._clock;
         if (this._manifest.conflictResolution == ConflictResolution.FirstWriteWins)
             allEntries.reverse();
 
@@ -222,7 +222,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             return;
 
         const makeEntry = async (obj: IObject) => {
-            const entry: IEntry = { clock: ++this._clock, value: obj };
+            const entry: IEntry = { value: { ...obj, _clock: ++this._clock } };
             if (this._manifest.complexity > 0) {
                 const [signature, nonce] = await this._cryptoProvider.sign_complex(entry, this._address, this._manifest.complexity);
                 entry.proofOfWork = { signature, nonce };
@@ -324,7 +324,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 this._numEntries += myEffectiveEntries.length - myEntries.length;
 
                 myEntryBlocks = [];
-                let sortedEntries = myEffectiveEntries.sort(byClock);
+                let sortedEntries = myEffectiveEntries.sort(entryByClock);
                 while (sortedEntries.length > 0) {
                     myEntryBlocks.push({ entries: sortedEntries.slice(0, this._options.entryBlockSize) });
                     sortedEntries = sortedEntries.slice(this._options.entryBlockSize);

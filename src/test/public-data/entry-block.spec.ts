@@ -12,10 +12,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
@@ -99,10 +96,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
@@ -132,13 +126,9 @@ describe('entry', () => {
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
         const entryBlock: IEntryBlock = {
-            entries: [{
-                clock: 1,
-                value: { _id: publicKey }
-            }, {
-                clock: 2,
-                value: { _id: publicKey }
-            }]
+            entries: [
+                { value: { _id: publicKey, _clock: 1 } },
+                { value: { _id: publicKey, _clock: 2 } }]
         };
 
         const manifest: ICollectionManifest = {
@@ -165,10 +155,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = {
-            clock: 1,
-            value: { _id: 'id' }
-        };
+        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
