@@ -239,8 +239,13 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (!this.canWrite() || objs.length == 0)
             return;
 
+        const makeObject = (obj: any) => ({
+            ...obj,
+            _clock: ++this._clock
+        });
+
         const makeEntry = async (obj: IObject) => {
-            const entry: IEntry = { value: { ...obj, _clock: ++this._clock } };
+            const entry: IEntry = { value: obj };
             if (this._manifest.complexity > 0) {
                 const [signature, nonce] = await this._cryptoProvider.sign_complex(entry, this._address, this._manifest.complexity);
                 entry.proofOfWork = { signature, nonce };
@@ -256,11 +261,13 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             if (obj._id != this._selfIdentity.publicKey)
                 return;
 
-            if (lastWriteWins || !this._index.has(obj._id))
-                this._index.set(obj._id, { ...obj, _identity: this._selfIdentity });
+            const objToAdd = makeObject(obj);
+
+            if (lastWriteWins || !this._index.has(objToAdd._id))
+                this._index.set(objToAdd._id, { ...objToAdd, _identity: this._selfIdentity });
             this._numEntries = 1;
 
-            const entry: IEntry = await makeEntry(obj);
+            const entry: IEntry = await makeEntry(objToAdd);
             const entryBlock: IEntryBlock = { entries: [entry] };
             const entryBlockCid = await this._contentAccessor.putObject(entryBlock);
             myEntryBlockList = {
@@ -272,9 +279,14 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             this._entryBlockLists.set(this._selfIdentity.publicKey, myEntryBlockList);
         }
         else {
-            for (const obj of objs)
-                if (lastWriteWins || !this._index.has(obj._id))
-                    this._index.set(obj._id, { ...obj, _identity: this._selfIdentity });
+            const objsToAdd: any[] = [];
+            for (const objIn of objs) {
+                if (lastWriteWins || !this._index.has(objIn._id)) {
+                    const objToAdd = makeObject(objIn);
+                    this._index.set(objIn._id, { ...objToAdd, _identity: this._selfIdentity });
+                    objsToAdd.push(objToAdd);
+                }
+            }
             this._numEntries += objs.length;
 
             const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey);
@@ -299,21 +311,24 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 lastBlock = maybeLastBlock;
             }
 
-            const removeId = (obj: IObject): any => {
+            const removeSpecialProperties = (obj: IObject): any => {
                 const clone: any = { ...obj };
                 delete clone._id;
+                delete clone._clock;
+                delete clone._identity;
                 return clone;
             }
 
-            const encrypt = async (obj: IObject): Promise<any> => {
+            const encryptIfRequired = async (obj: any): Promise<any> => {
                 return this._manifest.publicAccess == AccessRights.None ? {
                     _id: await this._cryptoProvider.encrypt(obj._id),
-                    payload: await this._cryptoProvider.encrypt(JSON.stringify(removeId(obj)))
+                    _clock: obj._clock,
+                    payload: await this._cryptoProvider.encrypt(JSON.stringify(removeSpecialProperties(obj)))
                 } : obj;
             }
 
             const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
-            const encryptedObjs = await Promise.all(objs.map(obj => encrypt(obj)));
+            const encryptedObjs = await Promise.all(objsToAdd.map(obj => encryptIfRequired(obj)));
             let newBlockEntries = [...lastEntries, ...await Promise.all(encryptedObjs.map(obj => makeEntry(obj)))];
 
             const newBlocks: IEntryBlock[] = [];
@@ -329,7 +344,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
             myEntryBlockList.entryBlockCids = [...oldBlockCids, ...newBlockCids];
 
-            this._addCount += objs.length;
+            this._addCount += objsToAdd.length;
             if (this._addCount >= this._options.compactThreshold) {
                 this._addCount %= this._options.compactThreshold;
                 let myEntryBlocks = await Promise.all(myEntryBlockList.entryBlockCids.map(entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));

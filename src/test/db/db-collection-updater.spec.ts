@@ -262,11 +262,11 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(values.length);
 
         // Check the index was correctly populated
+        const publicKey = await crypto.publicKey();
         for (let i = 0; i < values.length; ++i)
-            expect(updater.index().get(values[i]._id)).toHaveProperty('value', values[i].value);
+            expect(updater.index().get(values[i]._id)).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
@@ -325,11 +325,11 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(values.length);
 
         // Check the index was correctly populated
+        const publicKey = await crypto.publicKey();
         for (let i = 0; i < values.length; ++i)
-            expect(updater.index().get(values[i]._id)).toHaveProperty('value', values[i].value);
+            expect(updater.index().get(values[i]._id)).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
@@ -385,8 +385,12 @@ describe('db-collection-updater', () => {
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
+        const publicKey = await crypto.publicKey();
+
+        // The first value contains _clock and _identity as if it had come from a query
+        // We want to check that these get stripped off prior to encryption.
         const values = [
-            { _id: 'key-1', value: 1 },
+            { _id: 'key-1', _clock: 1, _identity: { publicKey }, value: 1 },
             { _id: 'key-2', value: 2 },
             { _id: 'key-3', value: 3 }];
 
@@ -399,10 +403,9 @@ describe('db-collection-updater', () => {
 
         // Check the index was correctly populated
         for (let i = 0; i < values.length; ++i)
-            expect(updater.index().get(values[i]._id)).toHaveProperty('value', values[i].value);
+            expect(updater.index().get(values[i]._id)).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
@@ -424,6 +427,8 @@ describe('db-collection-updater', () => {
             const payload = { ...obj };
             const id = payload._id;
             delete payload._id;
+            delete payload._clock;
+            delete payload._identity;
             return {
                 _id: await crypto.encrypt(id),
                 payload: await crypto.encrypt(JSON.stringify(payload))
@@ -469,15 +474,15 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(values.length);
 
         // Check the index was correctly populated
-        const expectedIndex: Map<string, number> = new Map();
+        const expectedIndex: Map<string, any> = new Map();
+        const publicKey = await crypto.publicKey();
+        let i = 0;
         for (const value of values)
-            expectedIndex.set(value._id, value.value);
+            expectedIndex.set(value._id, { ...value, _clock: ++i, _identity: { publicKey } });
         for (const [id, value] of expectedIndex.entries())
-            expect(updater.index().get(id))
-                .toHaveProperty('value', value);
+            expect(updater.index().get(id)).toEqual(value);
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
@@ -532,23 +537,24 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(values.length);
 
         // Check the index was correctly populated
-        const expectedIndex: Map<string, number> = new Map();
-        for (const value of [...values].reverse())
-            expectedIndex.set(value._id, value.value);
+        const expectedIndex: Map<string, any> = new Map();
+        const publicKey = await crypto.publicKey();
+        let i = 0;
+        for (const value of values)
+            if (!expectedIndex.has(value._id))
+                expectedIndex.set(value._id, { ...value, _clock: ++i, _identity: { publicKey } });
         for (const [id, value] of expectedIndex.entries())
-            expect(updater.index().get(id))
-                .toHaveProperty('value', value);
+            expect(updater.index().get(id)).toEqual(value);
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
-        expect(collection).toHaveProperty('addCount', values.length);
+        expect(collection).toHaveProperty('addCount', i);
         expect(collection.entryBlockLists).toHaveLength(1);
         const entryBlockList = collection.entryBlockLists[0];
         expect(entryBlockList).toHaveProperty('entryBlockCids');
-        expect(entryBlockList).toHaveProperty('clock', values.length);
+        expect(entryBlockList).toHaveProperty('clock', i);
         expect(entryBlockList).toHaveProperty('publicKey', publicKey);
         expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
         expect(entryBlockList.entryBlockCids).toHaveLength(1);
@@ -557,7 +563,7 @@ describe('db-collection-updater', () => {
         if (!entryBlock)
             return;
         expect(entryBlock).toHaveProperty('entries');
-        expect(entryBlock.entries).toHaveLength(values.length);
+        expect(entryBlock.entries).toHaveLength(i);
         for (let i = 0; i < entryBlock.entries.length; ++i) {
             const entries = entryBlock.entries;
             expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
@@ -595,15 +601,15 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(values.length - 1);
 
         // Check the index was correctly populated
-        const expectedIndex: Map<string, number> = new Map();
+        const expectedIndex: Map<string, any> = new Map();
+        const publicKey = await crypto.publicKey();
+        let i = 0;
         for (const value of values)
-            expectedIndex.set(value._id, value.value);
-        for (let i = 0; i < expectedIndex.entries.length; ++i)
-            expect(updater.index().get(expectedIndex.entries[i]._id))
-                .toHaveProperty('value', expectedIndex.entries[i].value);
+            expectedIndex.set(value._id, { ...value, _clock: ++i, _identity: { publicKey } });
+        for (const [id, value] of expectedIndex.entries())
+            expect(updater.index().get(id)).toEqual(value);
 
         // Check the collection structure
-        const publicKey = await crypto.publicKey();
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
