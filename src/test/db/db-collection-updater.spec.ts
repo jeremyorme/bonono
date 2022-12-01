@@ -899,6 +899,48 @@ describe('db-collection-updater', () => {
         expect(updated).toBeTruthy();
     });
 
+    it('merges entries with different clocks in clock order', async () => {
+        const content = new MockContentStorage();
+        const crypto_a = new MockCryptoProvider('test-id-a');
+        const crypto_b = new MockCryptoProvider('test-id-b');
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto_a, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+        await updater.init('test');
+        let updated = false;
+        updater.onUpdated(() => { updated = true; });
+
+        const key_x = 'x';
+        const key_y = 'y';
+
+        const value_a = 'a';
+        const value_b = 'b';
+
+        const entry_a1: IEntry = { value: { _id: key_x, _clock: 1, value: value_a } as IObject }; // A: x = a
+        const entry_b1: IEntry = { value: { _id: key_x, _clock: 2, value: value_b } as IObject }; // B: x = b
+        const entry_b2: IEntry = { value: { _id: key_y, _clock: 3, value: value_b } as IObject }; // B: y = b
+        const entry_a2: IEntry = { value: { _id: key_y, _clock: 4, value: value_a } as IObject }; // A: y = a
+
+        const collection: ICollection = {
+            senderPublicKey: await crypto_a.publicKey(),
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([[entry_a1, entry_a2]], content, crypto_a), await makeEntryBlockList([[entry_b1, entry_b2]], content, crypto_b)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection);
+        // ---
+
+        expect(updater.numEntries()).toEqual(4);
+        expect(updater.index().has(key_x)).toBeTruthy();
+        expect(updater.index().get(key_x)).toHaveProperty('value', value_b);
+        expect(updater.index().has(key_y)).toBeTruthy();
+        expect(updater.index().get(key_y)).toHaveProperty('value', value_a);
+        expect(updated).toBeTruthy();
+    });
+
     it('merges a valid collection requiring proof of work into an empty collection', async () => {
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');

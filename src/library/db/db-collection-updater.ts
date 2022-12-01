@@ -154,7 +154,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Regenerate the index and update the current clock
         const entryBlocks = mergeArrays(sortedMergedEntryBlockListUpdates.map(x => x.updatedBlocks ? x.updatedBlocks : x.originalBlocks ? x.originalBlocks : []));
-        const allEntries = mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : []));
+        const allEntries = mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])).sort(entryByClock);
         this._numEntries = allEntries.length;
 
         if (allEntries.length > 0)
