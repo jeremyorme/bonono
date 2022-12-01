@@ -13,6 +13,7 @@ import { AccessRights } from '../public-data/access-rights';
 import { IObject } from '../public-data/object';
 import { ILogSink } from '../services/log-sink';
 import { ConflictResolution } from '../public-data/conflict-resolution';
+import { IIdentity } from '../private-data/identity';
 
 export interface IDbCollectionUpdater {
     init(name: string): Promise<boolean>;
@@ -46,7 +47,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     private _updatedCallbacks: Array<() => void> = [];
     private _addCount: number = 0;
     private _numEntries: number = 0;
-    private _selfPublicKey: string = '';
+    private _selfIdentity: IIdentity = { publicKey: '' };
+    private _identityCache: Map<string, IIdentity> = new Map();
 
     constructor(
         private _contentAccessor: IContentAccessor,
@@ -61,7 +63,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async init(name: string): Promise<boolean> {
 
-        this._selfPublicKey = await this._cryptoProvider.publicKey();
+        this._selfIdentity.publicKey = await this._cryptoProvider.publicKey();
 
         var manifest: ICollectionManifest | null;
         if (this._options.address) {
@@ -74,7 +76,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         else {
             this._manifest = {
                 name,
-                creatorPublicKey: this._selfPublicKey,
+                creatorPublicKey: this._selfIdentity.publicKey,
                 publicAccess: this._options.publicAccess,
                 entryBlockSize: this._options.entryBlockSize,
                 conflictResolution: this._options.conflictResolution,
@@ -153,8 +155,23 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             return;
 
         // Regenerate the index and update the current clock
-        const entryBlocks = mergeArrays(sortedMergedEntryBlockListUpdates.map(x => x.updatedBlocks ? x.updatedBlocks : x.originalBlocks ? x.originalBlocks : []));
-        const allEntries = mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])).sort(entryByClock);
+        const addIdentity = (entry: IEntry, publicKey: string | undefined) => {
+            if (!publicKey)
+                return entry;
+            let _identity: IIdentity | undefined = this._identityCache.get(publicKey);
+            if (!_identity) {
+                _identity = { publicKey };
+                this._identityCache.set(publicKey, _identity);
+            }
+            const updatedEntry = { ...entry };
+            updatedEntry.value = { ...updatedEntry.value, _identity } as IObject
+            return updatedEntry;
+        };
+
+        const allEntries = mergeArrays(sortedMergedEntryBlockListUpdates.map(u =>
+            u.updatedBlocks ? mergeArrays(u.updatedBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.publicKey)) : [])) :
+                u.originalBlocks ? mergeArrays(u.originalBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.publicKey)) : [])) : [])).sort(entryByClock);
+
         this._numEntries = allEntries.length;
 
         if (allEntries.length > 0)
@@ -171,7 +188,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             for (const entry of allEntries) {
                 const obj = {
                     _id: await this._cryptoProvider.decrypt(entry.value._id),
-                    ...JSON.parse(await this._cryptoProvider.decrypt(entry.value['payload']))
+                    ...JSON.parse(await this._cryptoProvider.decrypt(entry.value['payload'])),
+                    _identity: entry.value['_identity']
                 };
                 this._index.set(obj._id, obj);
             }
@@ -182,7 +200,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Store collection locally with all the entry block lists we have
         const collection: ICollection = {
-            senderPublicKey: this._selfPublicKey,
+            senderPublicKey: this._selfIdentity.publicKey,
             address: this._address,
             entryBlockLists: Array.from(this._entryBlockLists.values()),
             addCount: this._addCount
@@ -199,10 +217,10 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             return false;
 
         // If our entry block list was updated, publish it for other peers to merge
-        const myEntryBlockList = this._entryBlockLists.get(this._selfPublicKey);
+        const myEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey);
         if (myEntryBlockList != null) {
             this._publish({
-                senderPublicKey: this._selfPublicKey,
+                senderPublicKey: this._selfIdentity.publicKey,
                 address: this._address,
                 entryBlockLists: [myEntryBlockList],
                 addCount: this._addCount
@@ -235,11 +253,11 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
             var obj = objs[lastWriteWins ? objs.length - 1 : 0];
 
-            if (obj._id != this._selfPublicKey)
+            if (obj._id != this._selfIdentity.publicKey)
                 return;
 
             if (lastWriteWins || !this._index.has(obj._id))
-                this._index.set(obj._id, obj);
+                this._index.set(obj._id, { ...obj, _identity: this._selfIdentity });
             this._numEntries = 1;
 
             const entry: IEntry = await makeEntry(obj);
@@ -248,18 +266,18 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             myEntryBlockList = {
                 entryBlockCids: [entryBlockCid],
                 clock: 0,
-                publicKey: this._selfPublicKey,
+                publicKey: this._selfIdentity.publicKey,
                 signature: ''
             };
-            this._entryBlockLists.set(this._selfPublicKey, myEntryBlockList);
+            this._entryBlockLists.set(this._selfIdentity.publicKey, myEntryBlockList);
         }
         else {
             for (const obj of objs)
                 if (lastWriteWins || !this._index.has(obj._id))
-                    this._index.set(obj._id, obj);
+                    this._index.set(obj._id, { ...obj, _identity: this._selfIdentity });
             this._numEntries += objs.length;
 
-            const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfPublicKey);
+            const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey);
             if (maybeMyEntryBlockList) {
                 myEntryBlockList = maybeMyEntryBlockList;
             }
@@ -267,10 +285,10 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 myEntryBlockList = {
                     entryBlockCids: [],
                     clock: 0,
-                    publicKey: this._selfPublicKey,
+                    publicKey: this._selfIdentity.publicKey,
                     signature: ''
                 };
-                this._entryBlockLists.set(this._selfPublicKey, myEntryBlockList);
+                this._entryBlockLists.set(this._selfIdentity.publicKey, myEntryBlockList);
             }
 
             var lastBlock: IEntryBlock = { entries: [] };
@@ -343,7 +361,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     onPeerJoined(_peer: string) {
         if (this._entryBlockLists.size > 0) {
             let collection: ICollection = {
-                senderPublicKey: this._selfPublicKey,
+                senderPublicKey: this._selfIdentity.publicKey,
                 address: this._address,
                 entryBlockLists: Array.from(this._entryBlockLists.values()),
                 addCount: this._addCount
@@ -355,12 +373,12 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
     onUpdated(callback: () => void) { this._updatedCallbacks.push(callback); }
 
     canRead(): boolean {
-        return this._selfPublicKey == this._manifest.creatorPublicKey ||
+        return this._selfIdentity.publicKey == this._manifest.creatorPublicKey ||
             this._manifest.publicAccess != AccessRights.None;
     }
 
     canWrite(): boolean {
-        return this._selfPublicKey == this._manifest.creatorPublicKey ||
+        return this._selfIdentity.publicKey == this._manifest.creatorPublicKey ||
             this._manifest.publicAccess == AccessRights.ReadWrite;
     }
 

@@ -1003,7 +1003,7 @@ describe('db-collection-updater', () => {
 
         expect(updater.numEntries()).toEqual(2);
         expect(updater.index().has('entry-0')).toBeTruthy();
-        expect(updater.index().get('entry-0')).toEqual(entries[1].value);
+        expect(updater.index().get('entry-0')).toEqual({ ...entries[1].value, _identity: { publicKey } });
         expect(updated).toBeTruthy();
     });
 
@@ -1036,7 +1036,7 @@ describe('db-collection-updater', () => {
 
         expect(updater.numEntries()).toEqual(2);
         expect(updater.index().has('entry-0')).toBeTruthy();
-        expect(updater.index().get('entry-0')).toEqual(entries[0].value);
+        expect(updater.index().get('entry-0')).toEqual({ ...entries[0].value, _identity: { publicKey } });
         expect(updated).toBeTruthy();
     });
 
