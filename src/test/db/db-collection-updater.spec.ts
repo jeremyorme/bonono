@@ -551,7 +551,7 @@ describe('db-collection-updater', () => {
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
-        expect(collection).toHaveProperty('addCount', i);
+        expect(collection).toHaveProperty('addCount', 0);
         expect(collection.entryBlockLists).toHaveLength(1);
         const entryBlockList = collection.entryBlockLists[0];
         expect(entryBlockList).toHaveProperty('entryBlockCids');

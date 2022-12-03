@@ -344,26 +344,33 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
             myEntryBlockList.entryBlockCids = [...oldBlockCids, ...newBlockCids];
 
-            this._addCount += objsToAdd.length;
-            if (this._addCount >= this._options.compactThreshold) {
-                this._addCount %= this._options.compactThreshold;
-                let myEntryBlocks = await Promise.all(myEntryBlockList.entryBlockCids.map(entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
-                const myEntries: IEntry[] = mergeArrays(myEntryBlocks.map(eb => eb ? eb.entries : []));
+            // Skip compaction if threshold is non-positive or using first-write-wins mode
+            if (this._options.compactThreshold > 0 && this._manifest.conflictResolution != ConflictResolution.FirstWriteWins) {
 
-                const myEffectiveEntryMap: Map<string, IEntry> = new Map();
-                for (const entry of myEntries)
-                    myEffectiveEntryMap.set(entry.value._id, entry);
-                const myEffectiveEntries = Array.from(myEffectiveEntryMap.values());
-                this._numEntries += myEffectiveEntries.length - myEntries.length;
+                this._addCount += objsToAdd.length;
 
-                myEntryBlocks = [];
-                let sortedEntries = myEffectiveEntries.sort(entryByClock);
-                while (sortedEntries.length > 0) {
-                    myEntryBlocks.push({ entries: sortedEntries.slice(0, this._options.entryBlockSize) });
-                    sortedEntries = sortedEntries.slice(this._options.entryBlockSize);
+                // Skip compaction if threshold not reached
+                if (this._addCount >= this._options.compactThreshold) {
+
+                    this._addCount %= this._options.compactThreshold;
+                    let myEntryBlocks = await Promise.all(myEntryBlockList.entryBlockCids.map(entryBlockCid => this._contentAccessor.getObject<IEntryBlock>(entryBlockCid)));
+                    const myEntries: IEntry[] = mergeArrays(myEntryBlocks.map(eb => eb ? eb.entries : []));
+
+                    const myEffectiveEntryMap: Map<string, IEntry> = new Map();
+                    for (const entry of myEntries)
+                        myEffectiveEntryMap.set(entry.value._id, entry);
+                    const myEffectiveEntries = Array.from(myEffectiveEntryMap.values());
+                    this._numEntries += myEffectiveEntries.length - myEntries.length;
+
+                    myEntryBlocks = [];
+                    let sortedEntries = myEffectiveEntries.sort(entryByClock);
+                    while (sortedEntries.length > 0) {
+                        myEntryBlocks.push({ entries: sortedEntries.slice(0, this._options.entryBlockSize) });
+                        sortedEntries = sortedEntries.slice(this._options.entryBlockSize);
+                    }
+
+                    myEntryBlockList.entryBlockCids = await Promise.all(myEntryBlocks.map(eb => this._contentAccessor.putObject(eb)));
                 }
-
-                myEntryBlockList.entryBlockCids = await Promise.all(myEntryBlocks.map(eb => this._contentAccessor.putObject(eb)));
             }
         }
 
