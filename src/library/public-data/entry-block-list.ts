@@ -85,19 +85,22 @@ export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], origin
         return false;
     }
 
+    // check_overwrites(IEntry.value._id)
+    if (conflictResolution == ConflictResolution.FirstWriteWins) {
+        const entryIdSet: Set<string> = new Set();
+        if (entries.some(e => e && (entryIdSet.has(e.value._id) || !entryIdSet.add(e.value._id)))) {
+            log?.warning('Update containing entry block list with multiple writes with the same _id in first-write-wins mode was ignored (address = ' + address + ')');
+            return false;
+        };
+    }
+
     // check_history(IEntryBlockList.entryBlockCids, IEntryBlockList.entryBlockCids)
     const originalEntryMap: Map<string, IEntry> = new Map();
     const historicalEntryMap: Map<string, IEntry> = new Map();
     const lastOriginalEntry = originalEntries.slice(-1)[0];
     const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.value._clock : 0;
-    if (conflictResolution == ConflictResolution.LastWriteWins) {
-        originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
-        entries.forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
-    }
-    else {
-        [...originalEntries].reverse().forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
-        [...entries].reverse().forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
-    }
+    originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
+    entries.forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
     const originalString = JSON.stringify([...originalEntryMap.entries()]);
     const historicalString = JSON.stringify([...historicalEntryMap.entries()]);
     if (originalString != historicalString) {

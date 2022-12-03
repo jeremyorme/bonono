@@ -13,6 +13,7 @@ import { AccessRights } from '../../library/public-data/access-rights';
 import { ConflictResolution } from '../../library/public-data/conflict-resolution';
 import { IObject } from '../../library/public-data/object';
 import { ConsoleLogSink } from '../../library/services/console-log-sink';
+import { MockLogSink } from '../test_util/mock-log-sink';
 
 describe('db-collection-updater', () => {
 
@@ -1013,14 +1014,15 @@ describe('db-collection-updater', () => {
         expect(updated).toBeTruthy();
     });
 
-    it('sets the first value for a key when merging with first write wins', async () => {
+    it('fails to overwrite value for a key when merging with first write wins', async () => {
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
+        const log = new MockLogSink();
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, conflictResolution: ConflictResolution.FirstWriteWins });
+            content, crypto, new MockLocalStorage(), log, _ => { },
+            { ...defaultCollectionOptions, conflictResolution: ConflictResolution.FirstWriteWins });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -1040,10 +1042,12 @@ describe('db-collection-updater', () => {
         await updater.merge(collection);
         // ---
 
-        expect(updater.numEntries()).toEqual(2);
-        expect(updater.index().has('entry-0')).toBeTruthy();
-        expect(updater.index().get('entry-0')).toEqual({ ...entries[0].value, _identity: { publicKey } });
-        expect(updated).toBeTruthy();
+        expect(updater.numEntries()).toEqual(0);
+        expect(updater.index().has('entry-0')).toBeFalsy();
+        expect(updated).toBeFalsy();
+
+        expect(log.warnings.length).toEqual(1);
+        expect(log.warnings[0]).toEqual('Update containing entry block list with multiple writes with the same _id in first-write-wins mode was ignored (address = ' + updater.address() + ')');
     });
 
     it('does not merge an invalid collection', async () => {
