@@ -26,7 +26,10 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - working-directory: main
     - run: npm install
     - run: npm run build
     - run: npm run unit
+    
+    defaults:
+      run:
+        working-directory: main
