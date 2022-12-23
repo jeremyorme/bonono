@@ -10,7 +10,7 @@
     },
     "scripts": {
         "build": "npm run clean && npm run compile",
-        "clean": "rmdir /Q /S dist 2>nul",
+        "clean": "rmdir /Q /S dist 2>nul & cmd /c \"exit /b 0\"",
         "compile": "npm run tsc",
         "tsc": "tsc -p .",
         "rollup": "rollup -c"
