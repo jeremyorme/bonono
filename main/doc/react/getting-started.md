@@ -1,11 +1,13 @@
-# Getting started - Bonono with React
+# Getting started with Bonono for React
 
 ## What you'll learn
 
 This is a brief tutorial that will teach you how to:
 
-* Include Bonono and its dependencies into a React app with `<script>` tags
-* Get the DbClient object, connect and then open a database and collection
+* Include IPFS with a `<script>` tag
+* Install Bonono for React
+* Add a BononoDb component
+* Get the DbClient object from the component, connect and then open a database and collection
 * Write some data and read it back
 * Ensure data replicates between multiple browsers
 
@@ -25,23 +27,25 @@ Ensure you have:
 For this tutorial we'll create a new React app using `create-react-app`:
 
 ```bash
-npx create-react-app bonono-app
+npx create-react-app bonono-app --template typescript
 cd bonono-app
 npm start
 ```
 
 ## Include Bonono and dependencies
 
-The newly created React project should have an `index.html` file in `bonono-app/public/`. Add the following script tag to the `<head>` section:
-
-```html
-<script type='module' src='https://unpkg.com/bonono@0.3.0/dist/bonono/bonono.esm.js'></script>
-```
-
-Bonono depends on [JS-IPFS](https://js.ipfs.io) so it is also necessary to add the following script tag:
+The newly created React project should have an `index.html` file in `bonono-app/public/`. Add the following script tag to the `<head>` section to include [JS-IPFS](https://js.ipfs.io):
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/ipfs@0.61.0/index.min.js"></script>
+```
+
+## Install Bonono for React
+
+Bonono provides a special package for React that exposes the BononoDb component as a first-class React component. You need to install this as follows:
+
+```bash
+npm install bonono-react
 ```
 
 ## Connect and open a data store with DbClient
@@ -62,19 +66,20 @@ class App extends React.Component {
 }
 ```
 
-Next, we'll add our Bonono component that gives us access to the Bonono data store API. We add a `ref` so we can access the `<Bonono>` element:
+Next, we'll add our BononoDb component that gives us access to the Bonono data store API. Import the component from `bonono-react`:
+
+```js
+import { BononoDb } from 'bonono-react';
+```
+
+Then add it to the `render` method:
 
 ```js
 class App extends React.Component {
-    constructor(props) {
-        super(props);
-        this.bononoRef = React.createRef(null);
-    }
-
     render() {
         return (
             <div className="App">
-                <bonono-db ref={this.bononoRef} />
+                <BononoDb />
                 <header className="App-header">
                     <img src={logo} className="App-logo" alt="logo" />
                 </header>
@@ -84,16 +89,29 @@ class App extends React.Component {
 }
 ```
 
-The `bonono-db` component produces an event `onDbClient` containing a reference to the top level `DbClient` object. We subscribe to the event in `componentDidMount` where we know the `ref` has been initialized and pass the `DbClient` to `initDb`:
+The `bonono-db` component produces an `onDbClient` event containing a reference to an `IDbClient` interface that we can use to access Bonono. We can simply add a handler for this event and stash the `IDbClient` instance:
 
 ```js
-    componentDidMount() {
-        this.bononoRef.current.addEventListener("dbClient", e => this.initDb(e.detail));
+    dbClient: IDbClient | undefined;
+
+    initDb(dbClient: IDbClient) {
+        this.dbClient = dbClient;
     }
 
-    async initDb(dbClient) {
-        // ...
+    render() {
+        return (
+            <div className="App">
+                <BononoDb onDbClient={e => this.initDb(e.detail)} />
+                ...
+            </div>
+        );
     }
+```
+
+Remember to add an import for `IDbClient`:
+
+```js
+import { BononoDb, IDbClient } from 'bonono-react';
 ```
 
 The generated app has `React.StrictMode` enabled (in `index.js`):
@@ -114,13 +132,27 @@ root.render(
 );
 ```
 
-We can now implement `initDb` to open a named database and create a named collection within it:
+We can now implement a method to open a named database and create a named collection within it:
 
 ```js
-    async initDb(dbClient) {
-        await dbClient.connect();
-        const db = await dbClient.db('bonono-app');
-        const collection = await db.collection('my-collection');
+    collection: IDbCollection | undefined;
+
+    async getCollection(): Promise<IDbCollection | undefined> {
+        if (!this.dbClient)
+            return;
+
+        if (!this.collection) {
+            await this.dbClient.connect();
+            const db = await this.dbClient.db('bonono-app');
+            if (!db)
+                return;
+
+            this.collection = await db.collection('my-collection');
+            if (!this.collection)
+                return;
+        }
+
+        return this.collection;
     }
 ```
 
@@ -129,18 +161,16 @@ We can now implement `initDb` to open a named database and create a named collec
 Now we have a collection, let's put something in it. Firstly, we'll render an `<input>` field to provide a means of entering some data:
 
 ```js
-    async write(text) {
+    async write(text: string) {
         // ...
     }
 
     render() {
         return (
             <div className="App">
-                <bonono-db onDbClient={ev => this.initDb(ev.detail)} />
+                <BononoDb onDbClient={e => this.initDb(e.detail)} />
                 <input type="text" value={this.state.value} onChange={ev => this.write(ev.target.value)} />
-                <header className="App-header">
-                    <img src={logo} className="App-logo" alt="logo" />
-                </header>
+                ...
             </div>
         );
     }
@@ -149,31 +179,58 @@ Now we have a collection, let's put something in it. Firstly, we'll render an `<
 We need to initialize the component state:
 
 ```js
+    state: IAppState;
+
     constructor(props) {
         super(props);
         this.state = {value: ''};
     }
 ```
 
+And define the `IAppState` interface:
+
+```js
+interface IAppState {
+    value: string;
+}
+```
+
 Then we can implement the `write` method to write to the collection we already created and update the state:
 
 ```js
     async write(text) {
-        this.collection.insertOne({_id: 'key', value: text});
+        const collection = await this.getCollection();
+        if (!collection)
+            return;
+            
+        collection.insertOne({ _id: 'key', value: text });
         this.setState({ value: text });
     }
 ```
 
-Finally, in `initDb`, we read the value with key `'key'` from the collection and set it into our component state:
+Finally, in `getCollection`, we read the value with key `'key'` from the collection and set it into our component state:
 
 ```js
-    async initDb(dbClient) {
-        await dbClient.connect();
-        this.db = await dbClient.db('bonono-app');
-        this.collection = await this.db.collection('my-collection');
+    async getCollection(): Promise<IDbCollection | undefined> {
+        if (!this.dbClient)
+            return;
 
-        const entry = collection.findOne({ _id: 'key' }) || { value: '' };
-        this.setState({ collection, value: entry.value });
+        if (!this.collection) {
+            await this.dbClient.connect();
+            const db = await this.dbClient.db('bonono-app');
+            if (!db)
+                return;
+
+            this.collection = await db.collection('my-collection');
+            if (!this.collection)
+                return;
+
+            const entry = this.collection.findOne({ _id: 'key' }) || { value: '' };
+            if (!entry)
+                return;
+            this.setState({ value: entry.value });
+        }
+        return this.collection;
     }
 ```
 
@@ -198,10 +255,10 @@ Peer-to-peer databases work differently from conventional client-server database
 
 Replication is automatic in Bonono. However, in order for peers to find each other, we need to connect to WebRTC star servers. These are purely used to locate other peers and do not see or store any application data.
 
-The WebRTC star servers are provided in the `address` property of the `<bonono-db>` component:
+The WebRTC star servers are provided in the `address` property of the `<BononoDb>` component:
 
 ```js
-                <bonono-db address="/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/"
+                <BononoDb address="/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/"
                            onDbClient={ev => this.initDb(ev.detail)} />
 ```
 
