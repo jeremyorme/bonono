@@ -28,6 +28,7 @@
     },
     "dependencies": {
         "@stencil/core": "^2.13.0",
+        "@stencil/react-output-target": "^0.3.1",
         "@types/crypto-js": "^4.1.1",
         "ajv": "^8.11.0",
         "base58-js": "^1.0.4",
