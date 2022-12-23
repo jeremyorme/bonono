@@ -17,7 +17,7 @@ describe('key-pair-crypto-provider', () => {
         const privateKey = await crypto.privateKey();
         // ---
 
-        expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
+        expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{93,94}$/);
     });
 
     it('generates a public key', async () => {
@@ -27,7 +27,7 @@ describe('key-pair-crypto-provider', () => {
         const publicKey = await crypto.publicKey();
         // ---
 
-        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{43,44}$/);
+        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{48,49}$/);
     });
 
     it('generates a signature', async () => {

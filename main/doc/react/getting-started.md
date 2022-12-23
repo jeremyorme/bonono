@@ -94,14 +94,14 @@ The `bonono-db` component produces an `onDbClient` event containing a reference 
 ```js
     dbClient: IDbClient | undefined;
 
-    initDb(dbClient: IDbClient) {
+    async initDb(dbClient: IDbClient) {
         this.dbClient = dbClient;
     }
 
     render() {
         return (
             <div className="App">
-                <BononoDb onDbClient={e => this.initDb(e.detail)} />
+                <BononoDb onDbClient={(e: BononoDbCustomEvent<IDbClient>) => this.initDb(e.detail)} />
                 ...
             </div>
         );
@@ -150,7 +150,7 @@ Now we have a collection, let's put something in it. Firstly, we'll render an `<
     render() {
         return (
             <div className="App">
-                <BononoDb onDbClient={e => this.initDb(e.detail)} />
+                <BononoDb onDbClient={(e: BononoDbCustomEvent<IDbClient>) => this.initDb(e.detail)} />
                 <input type="text" value={this.state.value} onChange={ev => this.write(ev.target.value)} />
                 ...
             </div>
@@ -190,29 +190,20 @@ Then we can implement the `write` method to write to the collection we already c
     }
 ```
 
-Finally, in `getCollection`, we read the value with key `'key'` from the collection and set it into our component state:
+Finally, in `initDb`, we read the value with key `'key'` from the collection and set it into our component state so the value is populated on load:
 
 ```js
-    async getCollection(): Promise<IDbCollection | undefined> {
-        if (!this.dbClient)
+    async initDb(dbClient: IDbClient) {
+        this.dbClient = dbClient;
+
+        const collection = await this.getCollection();
+        if (!collection)
             return;
 
-        if (!this.collection) {
-            await this.dbClient.connect();
-            const db = await this.dbClient.db('bonono-app');
-            if (!db)
-                return;
-
-            this.collection = await db.collection('my-collection');
-            if (!this.collection)
-                return;
-
-            const entry = this.collection.findOne({ _id: 'key' }) || { value: '' };
-            if (!entry)
-                return;
-            this.setState({ value: entry.value });
-        }
-        return this.collection;
+        const entry = collection.findOne({ _id: 'key' }) || { value: '' };
+        if (!entry)
+            return;
+        this.setState({ value: entry.value });
     }
 ```
 

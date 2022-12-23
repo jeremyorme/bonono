@@ -3,11 +3,11 @@ import * as ed from '@noble/ed25519';
 import { binary_to_base58, base58_to_binary } from 'base58-js';
 import { ILocalStorage } from "./local-storage";
 import * as CryptoJS from 'crypto-js';
+import { keys } from 'libp2p-crypto';
 
-function stringToHex(str: string): string {
+function stringToBytes(str: string): Uint8Array {
     const encoder = new TextEncoder();
-    const objBytes = encoder.encode(str);
-    return ed.utils.bytesToHex(objBytes);
+    return encoder.encode(str);
 }
 
 function numLeadingZeroBits(bytes: Uint8Array) {
@@ -21,9 +21,7 @@ function numLeadingZeroBits(bytes: Uint8Array) {
 export class KeyPairCryptoProvider implements ICryptoProvider {
 
     private _privateKey: string;
-    private _privateKeyHex: string;
     private _publicKey: string;
-    private _passPhrase: string;
 
     constructor(private _localStorage: ILocalStorage) { }
 
@@ -33,75 +31,63 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
     }
 
     async sign(obj: any): Promise<string> {
-        return binary_to_base58(await ed.sign(stringToHex(JSON.stringify(obj)), await this.privateKeyHex()));
+        const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
+        return binary_to_base58(await privateKeyObj.sign(stringToBytes(JSON.stringify(obj))));
     }
 
     async sign_complex(obj: any, prefix: string, complexity: number): Promise<[string, string]> {
         var sigBytes: Uint8Array, nonce: string;
+        const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
         do {
             nonce = binary_to_base58(ed.utils.randomBytes(32));
-            sigBytes = await ed.sign(stringToHex(JSON.stringify({ prefix, obj, nonce })), await this.privateKeyHex());
+            sigBytes = await privateKeyObj.sign(stringToBytes(JSON.stringify({ prefix, obj, nonce })));
         } while (numLeadingZeroBits(sigBytes) < complexity);
 
         return [binary_to_base58(sigBytes), nonce];
     }
 
     async verify(obj: any, signature: string, publicKey: string): Promise<boolean> {
-        const signatureHex = ed.utils.bytesToHex(base58_to_binary(signature));
-        const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(publicKey));
-        return ed.verify(ed.Signature.fromHex(signatureHex), stringToHex(JSON.stringify(obj)), publicKeyHex);
+        const publicKeyObj = await keys.unmarshalPublicKey(base58_to_binary(publicKey));
+        return publicKeyObj.verify(stringToBytes(JSON.stringify(obj)), base58_to_binary(signature));
     }
 
     async verify_complex(obj: any, signature: string, publicKey: string, prefix: string, nonce: string, complexity: number): Promise<boolean> {
         const sigBytes: Uint8Array = base58_to_binary(signature);
         if (numLeadingZeroBits(sigBytes) < complexity)
             return false;
-        const signatureHex = ed.utils.bytesToHex(sigBytes);
-        const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(publicKey));
-        return ed.verify(ed.Signature.fromHex(signatureHex), stringToHex(JSON.stringify({ prefix, obj, nonce })), publicKeyHex);
+
+        return this.verify({ prefix, obj, nonce }, signature, publicKey);
     }
 
     async privateKey(): Promise<string> {
         if (!this._privateKey) {
-            let privateKey = await this._localStorage.getItem('private-key');
+            let privateKey = await this._localStorage.getItem('private-key-ed25519');
             if (privateKey) {
                 this._privateKey = privateKey;
             }
             else {
-                this._privateKey = binary_to_base58(ed.utils.randomPrivateKey());
-                await this._localStorage.setItem('private-key', this._privateKey);
+                const privateKeyObj = await keys.generateKeyPair('Ed25519');
+                this._privateKey = binary_to_base58(keys.marshalPrivateKey(privateKeyObj));
+                await this._localStorage.setItem('private-key-ed25519', this._privateKey);
             }
         }
         return this._privateKey;
     }
 
     async publicKey(): Promise<string> {
-        if (!this._publicKey)
-            this._publicKey = binary_to_base58(await ed.getPublicKey(await this.privateKeyHex()));
+        if (!this._publicKey) {
+            const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
+            this._publicKey = binary_to_base58(keys.marshalPublicKey(privateKeyObj.public));
+        }
 
         return this._publicKey;
     }
 
     async encrypt(plainText: string): Promise<string> {
-        return CryptoJS.AES.encrypt(CryptoJS.enc.Latin1.parse(plainText), await this.generatePassPhrase()).toString();
+        return CryptoJS.AES.encrypt(CryptoJS.enc.Latin1.parse(plainText), await this.privateKey()).toString();
     }
 
     async decrypt(cipherText: string): Promise<string> {
-        return CryptoJS.enc.Latin1.stringify(CryptoJS.AES.decrypt(cipherText, await this.generatePassPhrase()));
-    }
-
-    private async privateKeyHex(): Promise<string> {
-        if (!this._privateKeyHex) {
-            this._privateKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.privateKey()));
-        }
-        return this._privateKeyHex;
-    }
-
-    private async generatePassPhrase(): Promise<string> {
-        if (!this._passPhrase) {
-            const publicKeyHex = ed.utils.bytesToHex(base58_to_binary(await this.publicKey()));
-            this._passPhrase = await binary_to_base58(await ed.getSharedSecret(await this.privateKeyHex(), publicKeyHex));
-        }
-        return this._passPhrase;
+        return CryptoJS.enc.Latin1.stringify(CryptoJS.AES.decrypt(cipherText, await this.privateKey()));
     }
 }
