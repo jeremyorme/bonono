@@ -114,24 +114,6 @@ Remember to add an import for `IDbClient`:
 import { BononoDb, IDbClient } from 'bonono-react';
 ```
 
-The generated app has `React.StrictMode` enabled (in `index.js`):
-
-```js
-root.render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>
-);
-```
-
-We'll disable it for this example because it causes `componentDidMount` to be invoked twice:
-
-```js
-root.render(
-    <App />
-);
-```
-
 We can now implement a method to open a named database and create a named collection within it:
 
 ```js
