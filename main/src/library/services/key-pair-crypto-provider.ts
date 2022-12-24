@@ -1,9 +1,8 @@
 import { ICryptoProvider } from "./crypto-provider";
-import * as ed from '@noble/ed25519';
 import { binary_to_base58, base58_to_binary } from 'base58-js';
 import { ILocalStorage } from "./local-storage";
 import * as CryptoJS from 'crypto-js';
-import { keys } from 'libp2p-crypto';
+import { keys, randomBytes } from 'libp2p-crypto';
 
 function stringToBytes(str: string): Uint8Array {
     const encoder = new TextEncoder();
@@ -39,7 +38,7 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
         var sigBytes: Uint8Array, nonce: string;
         const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
         do {
-            nonce = binary_to_base58(ed.utils.randomBytes(32));
+            nonce = binary_to_base58(randomBytes(32));
             sigBytes = await privateKeyObj.sign(stringToBytes(JSON.stringify({ prefix, obj, nonce })));
         } while (numLeadingZeroBits(sigBytes) < complexity);
 

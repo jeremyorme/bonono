@@ -38,7 +38,6 @@
         "ipfs-pubsub-peer-monitor": "^0.0.10",
         "level": "^8.0.0",
         "libp2p-crypto": "^0.21.2",
-        "noble-ed25519": "^1.2.6",
         "orbit-db-io": "^1.0.2"
     },
     "devDependencies": {
