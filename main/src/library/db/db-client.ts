@@ -6,8 +6,6 @@ import { LevelLocalStorage } from '../services/level-local-storage';
 import { ILocalStorage } from '../services/local-storage';
 import { Db, IDb } from './db';
 import { DbCollectionFactory } from './db-collection-factory';
-import { base58_to_binary } from 'base58-js';
-import { fromByteArray } from 'base64-js';
 
 /**
  * Handles the connection to IPFS and opening databases.
@@ -71,7 +69,7 @@ export class DbClient implements IDbClient {
         this._publicKey = await crypto.publicKey();
 
         this._window['_ipfs'] = await this._window['Ipfs'].create({
-            init: { privateKey: fromByteArray(base58_to_binary(await crypto.privateKey())) },
+            init: { privateKey: await crypto.privateKey() },
             preload: { enabled: false },
             EXPERIMENTAL: { pubsub: true },
             config: {

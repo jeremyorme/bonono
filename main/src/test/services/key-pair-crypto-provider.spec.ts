@@ -1,6 +1,8 @@
 import { KeyPairCryptoProvider } from '../../library/services/key-pair-crypto-provider';
 import { MockLocalStorage } from '../test_util/mock-local-storage';
 
+const base64_regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{4}|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{2}={2})$/gm;
+
 describe('key-pair-crypto-provider', () => {
     it('constructs', () => {
         // ---
@@ -17,7 +19,7 @@ describe('key-pair-crypto-provider', () => {
         const privateKey = await crypto.privateKey();
         // ---
 
-        expect(privateKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{93,94}$/);
+        expect(privateKey).toMatch(base64_regex);
     });
 
     it('generates a public key', async () => {
@@ -27,7 +29,7 @@ describe('key-pair-crypto-provider', () => {
         const publicKey = await crypto.publicKey();
         // ---
 
-        expect(publicKey).toMatch(/^[A-HJ-NP-Za-km-z1-9]{48,49}$/);
+        expect(publicKey).toMatch(base64_regex);
     });
 
     it('generates a signature', async () => {
@@ -37,7 +39,7 @@ describe('key-pair-crypto-provider', () => {
         const signature = await crypto.sign({ key: 'value' });
         // ---
 
-        expect(signature).toMatch(/^[A-HJ-NP-Za-km-z1-9]{87,88}$/);
+        expect(signature).toMatch(base64_regex);
     });
 
     it('generates a signature with complexity', async () => {

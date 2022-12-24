@@ -1,8 +1,8 @@
 import { ICryptoProvider } from "./crypto-provider";
-import { binary_to_base58, base58_to_binary } from 'base58-js';
 import { ILocalStorage } from "./local-storage";
 import * as CryptoJS from 'crypto-js';
 import { keys, randomBytes } from 'libp2p-crypto';
+import { fromByteArray, toByteArray } from 'base64-js';
 
 function stringToBytes(str: string): Uint8Array {
     const encoder = new TextEncoder();
@@ -25,33 +25,33 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
     constructor(private _localStorage: ILocalStorage) { }
 
     static complexity(signature: string): number {
-        const sigBytes: Uint8Array = base58_to_binary(signature);
+        const sigBytes: Uint8Array = toByteArray(signature);
         return numLeadingZeroBits(sigBytes);
     }
 
     async sign(obj: any): Promise<string> {
-        const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
-        return binary_to_base58(await privateKeyObj.sign(stringToBytes(JSON.stringify(obj))));
+        const privateKeyObj = await keys.unmarshalPrivateKey(toByteArray(await this.privateKey()));
+        return fromByteArray(await privateKeyObj.sign(stringToBytes(JSON.stringify(obj))));
     }
 
     async sign_complex(obj: any, prefix: string, complexity: number): Promise<[string, string]> {
         var sigBytes: Uint8Array, nonce: string;
-        const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
+        const privateKeyObj = await keys.unmarshalPrivateKey(toByteArray(await this.privateKey()));
         do {
-            nonce = binary_to_base58(randomBytes(32));
+            nonce = fromByteArray(randomBytes(32));
             sigBytes = await privateKeyObj.sign(stringToBytes(JSON.stringify({ prefix, obj, nonce })));
         } while (numLeadingZeroBits(sigBytes) < complexity);
 
-        return [binary_to_base58(sigBytes), nonce];
+        return [fromByteArray(sigBytes), nonce];
     }
 
     async verify(obj: any, signature: string, publicKey: string): Promise<boolean> {
-        const publicKeyObj = await keys.unmarshalPublicKey(base58_to_binary(publicKey));
-        return publicKeyObj.verify(stringToBytes(JSON.stringify(obj)), base58_to_binary(signature));
+        const publicKeyObj = await keys.unmarshalPublicKey(toByteArray(publicKey));
+        return publicKeyObj.verify(stringToBytes(JSON.stringify(obj)), toByteArray(signature));
     }
 
     async verify_complex(obj: any, signature: string, publicKey: string, prefix: string, nonce: string, complexity: number): Promise<boolean> {
-        const sigBytes: Uint8Array = base58_to_binary(signature);
+        const sigBytes: Uint8Array = toByteArray(signature);
         if (numLeadingZeroBits(sigBytes) < complexity)
             return false;
 
@@ -66,7 +66,7 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
             }
             else {
                 const privateKeyObj = await keys.generateKeyPair('Ed25519');
-                this._privateKey = binary_to_base58(keys.marshalPrivateKey(privateKeyObj));
+                this._privateKey = fromByteArray(keys.marshalPrivateKey(privateKeyObj));
                 await this._localStorage.setItem('private-key-ed25519', this._privateKey);
             }
         }
@@ -75,8 +75,8 @@ export class KeyPairCryptoProvider implements ICryptoProvider {
 
     async publicKey(): Promise<string> {
         if (!this._publicKey) {
-            const privateKeyObj = await keys.unmarshalPrivateKey(base58_to_binary(await this.privateKey()));
-            this._publicKey = binary_to_base58(keys.marshalPublicKey(privateKeyObj.public));
+            const privateKeyObj = await keys.unmarshalPrivateKey(toByteArray(await this.privateKey()));
+            this._publicKey = fromByteArray(keys.marshalPublicKey(privateKeyObj.public));
         }
 
         return this._publicKey;
