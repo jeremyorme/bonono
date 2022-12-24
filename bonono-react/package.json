@@ -1,7 +1,7 @@
 {
     "name": "bonono-react",
     "sideEffects": false,
-    "version": "0.3.0",
+    "version": "0.4.0",
     "private": true,
     "description": "React specific wrapper for Bonono",
     "repository": {
