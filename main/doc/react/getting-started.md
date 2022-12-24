@@ -108,10 +108,26 @@ The `bonono-db` component produces an `onDbClient` event containing a reference 
     }
 ```
 
-Remember to add an import for `IDbClient`:
+Remember to add imports for `BononoDbCustomEvent` and `IDbClient`:
 
 ```js
-import { BononoDb, IDbClient } from 'bonono-react';
+import { BononoDb, BononoDbCustomEvent, IDbClient } from 'bonono-react';
+```
+
+## Writing and reading
+
+Let's read and write a string in a collection. First we'll define an `IAppState` interface for our React component that will hold the string:
+
+```js
+interface IAppState {
+    value: string;
+}
+```
+
+We'll add an instance of this state object to the class and initialize it:
+
+```js
+    state: IAppState = {value: ''};
 ```
 
 We can now implement a method to open a named database and create a named collection within it:
@@ -138,9 +154,30 @@ We can now implement a method to open a named database and create a named collec
     }
 ```
 
-## Writing and reading
+Remember to add the import of `IDbCollection`:
 
-Now we have a collection, let's put something in it. Firstly, we'll render an `<input>` field to provide a means of entering some data:
+```js
+import { BononoDb, BononoDbCustomEvent, IDbClient, IDbCollection } from 'bonono-react';
+```
+
+Now we can call `getCollection` in `initDb` and read the value with key `'key'` from the collection then set it into our component state:
+
+```js
+    async initDb(dbClient: IDbClient) {
+        this.dbClient = dbClient;
+
+        const collection = await this.getCollection();
+        if (!collection)
+            return;
+
+        const entry = collection.findOne({ _id: 'key' }) || { value: '' };
+        if (!entry)
+            return;
+        this.setState({ value: entry.value });
+    }
+```
+
+All that remains is to write to the collection. Firstly, we'll render an `<input>` field to provide a means of entering some data:
 
 ```js
     async write(text: string) {
@@ -158,52 +195,16 @@ Now we have a collection, let's put something in it. Firstly, we'll render an `<
     }
 ```
 
-We need to initialize the component state:
+Then we can implement the `write` method to write to the collection and update the state:
 
 ```js
-    state: IAppState;
-
-    constructor(props) {
-        super(props);
-        this.state = {value: ''};
-    }
-```
-
-And define the `IAppState` interface:
-
-```js
-interface IAppState {
-    value: string;
-}
-```
-
-Then we can implement the `write` method to write to the collection we already created and update the state:
-
-```js
-    async write(text) {
+    async write(text: string) {
         const collection = await this.getCollection();
         if (!collection)
             return;
             
         collection.insertOne({ _id: 'key', value: text });
         this.setState({ value: text });
-    }
-```
-
-Finally, in `initDb`, we read the value with key `'key'` from the collection and set it into our component state so the value is populated on load:
-
-```js
-    async initDb(dbClient: IDbClient) {
-        this.dbClient = dbClient;
-
-        const collection = await this.getCollection();
-        if (!collection)
-            return;
-
-        const entry = collection.findOne({ _id: 'key' }) || { value: '' };
-        if (!entry)
-            return;
-        this.setState({ value: entry.value });
     }
 ```
 
