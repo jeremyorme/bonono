@@ -1,16 +1,19 @@
-# stencil-ds-react-template
+# Bonono for React
 
-This is an example repo of building plugins.
+Bonono for React is a wrapper around the [Bonono library](../main/README.md) that provides the Bonono Db component as a first class component in React.
 
-## Step 1.
+# Using Bonono for React
 
-- Update the `package.json` to have the correct package name for this repo.
-- Replace `component-library` under `dependencies` with your core stencil package name.
+Install the package as follows:
 
-## Step 2.
+```bash
+npm install bonono-react
+```
 
-- Build your core stencil package.
+Then you can import the BononoDb component:
 
-## Step 3.
+```js
+import { BononoDb } from 'bonono-react';
+```
 
-- Run build on this package.
+For further information, please refer to the [Getting started tutorial](doc/getting-started.md).

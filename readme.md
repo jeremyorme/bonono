@@ -8,42 +8,20 @@ Bonono is a simple peer-to-peer data store that provides:
 
 Why is it called Bonono? Simple, Opple sounded too silly.
 
-## Using Bonono
+**DISCLAIMER**: Bonono alpha software and is built on top of [js-ipfs](https://js.ipfs.tech/).
 
-- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.4.1/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
-- Then you can use Bonono anywhere in your template, JSX, html etc
+>"The js-ipfs library is in Alpha state. The codebase hasn't been audited by security specialists and it shouldn't be used to store, share or publish sensitive information."
 
-See the [Bonono DB component reference](main/src/components/bonono-db/readme.md) and [Bonono API](main/doc/api/README.md)
+# Bonono DB component
 
-## Tutorials
+The [Bonono DB component](main/README.md) can be used directly in Stencil and no-framework applications.
 
-Getting started:
-* [Bonono with React](main/doc/react/getting-started.md)
+# Framework specific wrapper components
 
-## Development
+Wrapper components wrap the Bonono DB component to be consumed by specific frameworks:
 
-To develop Bonono, clone this repo to a new directory:
+* [Bonono React component](bonono-react/README.md)
 
-```bash
-git clone https://github.com/jeremyorme/bonono.git
-cd bonono/main
-```
+# Roadmap
 
-and run:
-
-```bash
-npm install
-npm start
-```
-
-To build the component for production, run:
-
-```bash
-npm run build
-```
-
-To run the unit tests for the component, run:
-
-```bash
-npm test
-```
+There are no specific plans to add functionality to Bonono at this point. Work is currently underway on a comprehensive demonstration app with the intention of proving the performance of Bonono and ironing out any issues prior to releasing version 1.0.0.
