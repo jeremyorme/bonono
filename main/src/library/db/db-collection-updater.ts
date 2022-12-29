@@ -74,9 +74,13 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             this._manifest = manifest;
         }
         else {
+            const hasPrivateWriteAccess =
+                this._options.publicAccess == AccessRights.Read ||
+                this._options.publicAccess == AccessRights.None;
+
             this._manifest = {
                 name,
-                creatorPublicKey: this._selfIdentity.publicKey,
+                creatorPublicKey: hasPrivateWriteAccess ? this._selfIdentity.publicKey : '',
                 publicAccess: this._options.publicAccess,
                 entryBlockSize: this._options.entryBlockSize,
                 conflictResolution: this._options.conflictResolution,
@@ -401,7 +405,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     canWrite(): boolean {
         return this._selfIdentity.publicKey == this._manifest.creatorPublicKey ||
-            this._manifest.publicAccess == AccessRights.ReadWrite;
+            this._manifest.publicAccess == AccessRights.ReadWrite ||
+            this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn;
     }
 
     address(): string { return this._address; }

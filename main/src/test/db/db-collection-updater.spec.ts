@@ -40,7 +40,6 @@ describe('db-collection-updater', () => {
         // Construct an updater with public write access
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');
-        const publicKey = await crypto.publicKey();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
             null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
@@ -54,8 +53,33 @@ describe('db-collection-updater', () => {
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
         expect(manifest).toHaveProperty('name', 'test');
-        expect(manifest).toHaveProperty('creatorPublicKey', publicKey);
+        expect(manifest).toHaveProperty('creatorPublicKey', '');
         expect(manifest).toHaveProperty('publicAccess', 'ReadWrite');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
+
+        // Check write access is granted to the creator
+        expect(updater.canWrite()).toEqual(true);
+    });
+
+    it('inits new publicly writeable collection with own-key write access', async () => {
+        // Construct an updater with public write access
+        const content = new MockContentStorage();
+        const crypto = new MockCryptoProvider('test-id');
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+
+        // ---
+        await updater.init('test');
+        // ---
+
+        // Check the address points to a valid manifest with public ownership
+        expect(updater.address()).toBeTruthy();
+        const manifest = await content.getObject<ICollectionManifest>(updater.address());
+        expect(manifest).toBeTruthy();
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorPublicKey', '');
+        expect(manifest).toHaveProperty('publicAccess', 'ReadAnyWriteOwn');
         expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is granted to the creator
@@ -94,29 +118,62 @@ describe('db-collection-updater', () => {
 
         // Identity 'test-id-1' creates public store
         const cryptoCreator = new MockCryptoProvider('test-id-1');
-        const publicKeyCreator = await cryptoCreator.publicKey();
         const updaterCreator: DbCollectionUpdater = new DbCollectionUpdater(
             content, cryptoCreator, new MockLocalStorage(),
             null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updaterCreator.init('test');
 
-        // Identity 'test-id-2' opens the store created by 'test-id-1'.
+        // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, address: updaterCreator.address() });
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
         // ---
 
-        // Check the address points to a valid manifest with public ownership
-        expect(updater.address()).toBeTruthy();
+        // Check the address has not changed and points to a valid manifest with public ownership
+        expect(updater.address()).toEqual(updaterCreator.address());
         const manifest = await content.getObject<ICollectionManifest>(updater.address());
         expect(manifest).toBeTruthy();
         expect(manifest).toHaveProperty('name', 'test');
-        expect(manifest).toHaveProperty('creatorPublicKey', publicKeyCreator);
+        expect(manifest).toHaveProperty('creatorPublicKey', '');
         expect(manifest).toHaveProperty('publicAccess', 'ReadWrite');
+        expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
+
+        // Check write access is granted to identity that is not the creator
+        expect(updater.canWrite()).toEqual(true);
+    });
+
+    it('inits existing empty publicly writeable collection with own-key write access', async () => {
+        // Create common content storage to share between updaters with different identities
+        const content = new MockContentStorage();
+
+        // Identity 'test-id-1' creates public store
+        const cryptoCreator = new MockCryptoProvider('test-id-1');
+        const updaterCreator: DbCollectionUpdater = new DbCollectionUpdater(
+            content, cryptoCreator, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updaterCreator.init('test');
+
+        // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
+        const crypto = new MockCryptoProvider('test-id-2');
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+
+        // ---
+        await updater.init('test');
+        // ---
+
+        // Check the address has not changed and points to a valid manifest with public ownership
+        expect(updater.address()).toEqual(updaterCreator.address());
+        const manifest = await content.getObject<ICollectionManifest>(updater.address());
+        expect(manifest).toBeTruthy();
+        expect(manifest).toHaveProperty('name', 'test');
+        expect(manifest).toHaveProperty('creatorPublicKey', '');
+        expect(manifest).toHaveProperty('publicAccess', 'ReadAnyWriteOwn');
         expect(manifest).toHaveProperty('entryBlockSize', defaultCollectionOptions.entryBlockSize);
 
         // Check write access is granted to identity that is not the creator
@@ -172,15 +229,51 @@ describe('db-collection-updater', () => {
         await updaterOther.init('test');
         await updaterOther.add([{ _id: 'the-key' }]);
 
-        // Identity 'test-id-2' opens the store created by 'test-id-1'.
+        // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, local,
-            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
         // ---
+
+        // Check that the opened collection has the correct address
+        expect(updater.address()).toEqual(updaterOther.address());
+
+        // Check that 'test-id-2' sees the entry created by 'test-id-1'
+        expect(updater.numEntries()).toEqual(1);
+    });
+
+    it('inits existing non-empty publicly writeable collection with own-key write access', async () => {
+        // Create common content storage to share between updaters with different identities
+        const content = new MockContentStorage();
+
+        // Create common local storage to emulate sharing collections without pubsub
+        const local = new MockLocalStorage();
+
+        // Identity 'test-id-1' creates public store and adds an item
+        const crypto_1 = new MockCryptoProvider('test-id-1');
+        const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto_1, local,
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+        await updaterOther.init('test');
+        await updaterOther.add([{ _id: await crypto_1.publicKey() }]);
+        expect(updaterOther.numEntries()).toEqual(1);
+
+        // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
+        const crypto_2 = new MockCryptoProvider('test-id-2');
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto_2, local,
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+
+        // ---
+        await updater.init('test');
+        // ---
+
+        // Check that the opened collection has the correct address
+        expect(updater.address()).toEqual(updaterOther.address());
 
         // Check that 'test-id-2' sees the entry created by 'test-id-1'
         expect(updater.numEntries()).toEqual(1);

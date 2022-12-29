@@ -38,8 +38,11 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
         return false;
     }
 
-    // check_has_write_access(IEntryBlockList.ownerIdentity, ICollectionManifest.ownerIdentity)
-    if (manifest.publicAccess != AccessRights.ReadWrite && manifest.creatorPublicKey != entryBlockList.publicKey) {
+    // check_has_write_access(IEntryBlockList.publicKey, ICollectionManifest.creatorPublicKey)
+    const isPrivateWriteAccess =
+        manifest.publicAccess == AccessRights.Read ||
+        manifest.publicAccess == AccessRights.None;
+    if (isPrivateWriteAccess && manifest.creatorPublicKey != entryBlockList.publicKey) {
         log?.warning('Update containing illegal write was ignored (address = ' + address + ')');
         return false;
     }
