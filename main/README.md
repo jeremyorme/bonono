@@ -14,7 +14,7 @@ Why is it called Bonono? Simple, Opple sounded too silly.
 
 ## Using Bonono
 
-- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.4.2/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
+- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.5.0/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
 - Then you can use Bonono anywhere in your template, JSX, html etc
 
 See the [Bonono DB component reference](main/src/components/bonono-db/readme.md) and [Bonono API](main/doc/api/README.md)
