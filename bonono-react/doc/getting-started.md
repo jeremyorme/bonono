@@ -160,7 +160,7 @@ Remember to add the import of `IDbCollection`:
 import { BononoDb, BononoDbCustomEvent, IDbClient, IDbCollection } from 'bonono-react';
 ```
 
-Now we can call `getCollection` in `initDb` and read the value with key `'key'` from the collection then set it into our component state:
+Now we can call `getCollection` in `initDb` and handle the `onUpdated` collection event to read the value with key `'key'` from the collection then set it into our component state:
 
 ```js
     async initDb(dbClient: IDbClient) {
@@ -170,10 +170,15 @@ Now we can call `getCollection` in `initDb` and read the value with key `'key'` 
         if (!collection)
             return;
 
-        const entry = collection.findOne({ _id: 'key' }) || { value: '' };
-        if (!entry)
-            return;
-        this.setState({ value: entry.value });
+        const updateValue = () => {
+            const entry = collection.findOne({ _id: 'key' }) || { value: '' };
+            if (!entry)
+                return;
+            this.setState({ value: entry.value });
+        };
+
+        collection.onUpdated(updateValue);
+        updateValue();
     }
 ```
 
