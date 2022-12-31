@@ -232,8 +232,8 @@ Replication is automatic in Bonono. However, in order for peers to find each oth
 The WebRTC star servers are provided in the `address` property of the `<BononoDb>` component:
 
 ```js
-                <BononoDb address="/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/;/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/"
-                           onDbClient={ev => this.initDb(ev.detail)} />
+                <BononoDb address="/dns4/nyk.webrtc-star.bonono.org/tcp/443/wss/p2p-webrtc-star/"
+                          onDbClient={ev => this.initDb(ev.detail)} />
 ```
 
 **NOTE:** It is strongly recommended to set up your own WebRTC star server rather than relying on the above servers, which can be heavily loaded and are only really suitable for basic development/testing purposes.
