@@ -222,17 +222,6 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         if (!await this._localStorage.setItem('/db/' + this._address, this._collectionCid))
             return false;
 
-        // If our entry block list was updated, publish it for other peers to merge
-        const myEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey);
-        if (myEntryBlockList != null) {
-            this._publish({
-                senderPublicKey: this._selfIdentity.publicKey,
-                address: this._address,
-                entryBlockLists: [myEntryBlockList],
-                addCount: this._addCount
-            });
-        }
-
         return true;
     }
 
@@ -385,7 +374,18 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         myEntryBlockList.clock = this._clock;
         myEntryBlockList.signature = '';
         myEntryBlockList.signature = await this._cryptoProvider.sign(myEntryBlockList);
-        await this._updateCollectionCid();
+
+        if (!await this._updateCollectionCid())
+            return;
+
+        // Our entry block list was updated so publish it for other peers to merge
+        this._publish({
+            senderPublicKey: this._selfIdentity.publicKey,
+            address: this._address,
+            entryBlockLists: [myEntryBlockList],
+            addCount: this._addCount
+        });
+
         this._notifyUpdated();
     }
 
