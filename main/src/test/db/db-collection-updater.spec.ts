@@ -341,8 +341,8 @@ describe('db-collection-updater', () => {
             content, crypto, new MockLocalStorage(),
             null, c => { collection = c; }, { ...defaultCollectionOptions });
         await updater.init('test');
-        let updated = false;
-        updater.onUpdated(() => { updated = true; });
+        let updatedValues: any[] = [];
+        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
         const values = [
             { _id: 'key-1', value: 1 },
             { _id: 'key-2', value: 2 },
@@ -357,8 +357,9 @@ describe('db-collection-updater', () => {
 
         // Check the index was correctly populated
         const publicKey = await crypto.publicKey();
+        expect(updatedValues.length).toEqual(values.length);
         for (let i = 0; i < values.length; ++i)
-            expect(updater.index().get(values[i]._id)).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
+            expect(updatedValues[i]).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
 
         // Check the collection structure
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
@@ -382,9 +383,6 @@ describe('db-collection-updater', () => {
             const entries = entryBlock.entries;
             expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
         }
-
-        // Check we were notified
-        expect(updated).toBeTruthy();
     });
 
     it('adds entries with required proof of work', async () => {
@@ -940,8 +938,8 @@ describe('db-collection-updater', () => {
             content, crypto, new MockLocalStorage(),
             null, _ => { }, { ...defaultCollectionOptions });
         await updater.init('test');
-        let updated = false;
-        updater.onUpdated(() => { updated = true; });
+        let updatedValues: any[] = [];
+        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
 
         const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
 
@@ -958,7 +956,8 @@ describe('db-collection-updater', () => {
 
         expect(updater.numEntries()).toEqual(1);
         expect(updater.index().has('entry-0')).toBeTruthy();
-        expect(updated).toBeTruthy();
+        expect(updatedValues.length).toEqual(1);
+        expect(updatedValues[0]).toEqual({ ...entry.value, _clock: 1, _identity: { publicKey } });
     });
 
     it('merges entries with same clock in public key order', async () => {

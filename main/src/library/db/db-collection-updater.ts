@@ -198,6 +198,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 this._index.set(obj._id, obj);
             }
         }
+
+        this._notifyUpdated();
     }
 
     private async _updateCollectionCid(): Promise<boolean> {
@@ -231,11 +233,13 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             });
         }
 
+        return true;
+    }
+
+    private _notifyUpdated() {
         // Notify the update locally
         for (const cb of this._updatedCallbacks)
             cb();
-
-        return true;
     }
 
     async add(objs: any[]): Promise<void> {
@@ -382,6 +386,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         myEntryBlockList.signature = '';
         myEntryBlockList.signature = await this._cryptoProvider.sign(myEntryBlockList);
         await this._updateCollectionCid();
+        this._notifyUpdated();
     }
 
     onPeerJoined(_peer: string) {
