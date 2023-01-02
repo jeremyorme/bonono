@@ -4,7 +4,7 @@ import { ICollectionManifest, isCollectionManifestValid } from '../public-data/c
 import { ICollection, isCollectionValid } from '../public-data/collection';
 import { IEntryBlock } from '../public-data/entry-block';
 import { IEntry } from '../public-data/entry';
-import { entryByClock, byPublicKey, byUpdatedPublicKey } from '../util/sort-comparators';
+import { entryByClock, byUpdatedPublicKey } from '../util/sort-comparators';
 import { mergeArrays } from '../util/arrays';
 import { IContentAccessor } from '../services/content-accessor';
 import { ICryptoProvider } from '../services/crypto-provider';
