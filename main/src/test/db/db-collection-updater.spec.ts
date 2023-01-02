@@ -960,6 +960,52 @@ describe('db-collection-updater', () => {
         expect(updatedValues[0]).toEqual({ ...entry.value, _clock: 1, _identity: { publicKey } });
     });
 
+    it('merges a valid collection into a non-empty collection', async () => {
+        const content = new MockContentStorage();
+        const crypto_a = new MockCryptoProvider('test-id-a');
+        const publicKey_a = await crypto_a.publicKey();
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto_a, new MockLocalStorage(),
+            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+        await updater.init('test');
+        let updatedValues: any[] = [];
+        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
+
+        const entry_a: IEntry = { value: { _id: 'entry-a', _clock: 1 } };
+
+        const collection_a: ICollection = {
+            senderPublicKey: publicKey_a,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([[entry_a]], content, crypto_a)],
+            addCount: 1
+        };
+
+        await updater.merge(collection_a);
+
+        const entry_b: IEntry = { value: { _id: 'entry-b', _clock: 2 } };
+
+        const crypto_b = new MockCryptoProvider('test-id-b');
+        const publicKey_b = await crypto_b.publicKey();
+        const collection_b: ICollection = {
+            senderPublicKey: publicKey_b,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([[entry_b]], content, crypto_b)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection_b);
+        // ---
+
+        expect(updater.numEntries()).toEqual(2);
+        expect(updater.index().has('entry-a')).toBeTruthy();
+        expect(updater.index().has('entry-b')).toBeTruthy();
+        expect(updatedValues.length).toEqual(2);
+        expect(updatedValues[0]).toEqual({ ...entry_a.value, _clock: 1, _identity: { publicKey: publicKey_a } });
+        expect(updatedValues[1]).toEqual({ ...entry_b.value, _clock: 2, _identity: { publicKey: publicKey_b } });
+    });
+
     it('merges entries with same clock in public key order', async () => {
         const content = new MockContentStorage();
         const crypto_a = new MockCryptoProvider('test-id-a');

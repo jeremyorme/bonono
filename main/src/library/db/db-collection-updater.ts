@@ -4,7 +4,7 @@ import { ICollectionManifest, isCollectionManifestValid } from '../public-data/c
 import { ICollection, isCollectionValid } from '../public-data/collection';
 import { IEntryBlock } from '../public-data/entry-block';
 import { IEntry } from '../public-data/entry';
-import { entryByClock, byPublicKey } from '../util/sort-comparators';
+import { entryByClock, byPublicKey, byUpdatedPublicKey } from '../util/sort-comparators';
 import { mergeArrays } from '../util/arrays';
 import { IContentAccessor } from '../services/content-accessor';
 import { ICryptoProvider } from '../services/crypto-provider';
@@ -109,7 +109,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Determine which entry block lists have been updated since last time
         const entryBlockListUpdates = collection.entryBlockLists
-            .map(entryBlockList => (<IEntryBlockListUpdate>{ publicKey: entryBlockList.publicKey, updated: entryBlockList, original: this._entryBlockLists.get(entryBlockList.publicKey) }))
+            .map(entryBlockList => (<IEntryBlockListUpdate>{ updated: entryBlockList, original: this._entryBlockLists.get(entryBlockList.publicKey) }))
             .filter(entryBlockListUpdate => !entryBlockListUpdate.original || entryBlockListUpdate.updated.clock > entryBlockListUpdate.original.clock);
         if (entryBlockListUpdates.length == 0)
             return;
@@ -125,7 +125,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         this._entryBlockLists.forEach((v, k) => mergedEntryBlockListUpdates.set(k, { original: v }));
         for (const entryBlockListUpdate of entryBlockListUpdates)
             mergedEntryBlockListUpdates.set(entryBlockListUpdate.updated.publicKey, entryBlockListUpdate);
-        const sortedMergedEntryBlockListUpdates = Array.from(mergedEntryBlockListUpdates.values()).sort(byPublicKey);
+        const sortedMergedEntryBlockListUpdates = Array.from(mergedEntryBlockListUpdates.values()).sort(byUpdatedPublicKey);
 
         // Try to load the entry blocks
         for (const entryBlockListUpdate of sortedMergedEntryBlockListUpdates.values()) {
@@ -139,14 +139,15 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         // Validate the updated entry blocks
         if (!(await Promise.all(sortedMergedEntryBlockListUpdates.map(async entryBlockListUpdate => {
-            return !!entryBlockListUpdate.updated && !!entryBlockListUpdate.updatedBlocks && await areEntryBlocksValid(
-                entryBlockListUpdate.updatedBlocks,
-                entryBlockListUpdate.originalBlocks ? entryBlockListUpdate.originalBlocks : [],
-                entryBlockListUpdate.updated,
-                this._cryptoProvider,
-                this._address,
-                this._manifest,
-                this._log);
+            return !entryBlockListUpdate.updated ||
+                !!entryBlockListUpdate.updatedBlocks && await areEntryBlocksValid(
+                    entryBlockListUpdate.updatedBlocks,
+                    entryBlockListUpdate.originalBlocks ? entryBlockListUpdate.originalBlocks : [],
+                    entryBlockListUpdate.updated,
+                    this._cryptoProvider,
+                    this._address,
+                    this._manifest,
+                    this._log);
         }))).every(x => x))
             return;
 
@@ -173,8 +174,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         };
 
         const allEntries = mergeArrays(sortedMergedEntryBlockListUpdates.map(u =>
-            u.updatedBlocks ? mergeArrays(u.updatedBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.publicKey)) : [])) :
-                u.originalBlocks ? mergeArrays(u.originalBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.publicKey)) : [])) : [])).sort(entryByClock);
+            u.updatedBlocks ? mergeArrays(u.updatedBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.updated?.publicKey)) : [])) :
+                u.originalBlocks ? mergeArrays(u.originalBlocks.map(b => b ? b.entries.map(e => addIdentity(e, u.original?.publicKey)) : [])) : [])).sort(entryByClock);
 
         this._numEntries = allEntries.length;
 
