@@ -89,6 +89,15 @@ export interface IDbCollection {
      * @returns Number of entries
      */
     numEntries(): number;
+
+    /**
+     * Unsubscribes the collection so it no longer consumes resources.
+     * 
+     * @remarks This should be called prior to disposing of the collection
+     * reference to remove its updater from the list held by the {@link IDb}
+     * instance, thus enabling it to be destroyed.
+     */
+    close();
 }
 
 export class DbCollection implements IDbCollection {
@@ -123,4 +132,6 @@ export class DbCollection implements IDbCollection {
     address(): string { return this._updater.address(); }
 
     numEntries(): number { return this._updater.numEntries(); }
+
+    close() { this._updater.close(); }
 }

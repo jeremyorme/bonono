@@ -26,6 +26,7 @@ export interface IDbCollectionUpdater {
     address(): string;
     index(): Map<string, any>;
     numEntries(): number;
+    close();
 }
 
 interface IEntryBlockListUpdate {
@@ -56,9 +57,14 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         private _localStorage: ILocalStorage,
         private _log: ILogSink | null,
         private _publish: (ICollection) => void,
+        private _close: (string) => void,
         options: Partial<ICollectionOptions>) {
         this._options = { ...defaultCollectionOptions, ...options };
         validateCollectionOptions(this._options);
+    }
+
+    close() {
+        this._close(this._address);
     }
 
     async init(name: string): Promise<boolean> {

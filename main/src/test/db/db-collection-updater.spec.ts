@@ -25,7 +25,7 @@ describe('db-collection-updater', () => {
         // Construct an updater
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(),
-            null, _ => { }, defaultCollectionOptions);
+            null, _ => { }, _ => { }, defaultCollectionOptions);
 
         // Check it is valid
         expect(updater).toBeTruthy();
@@ -42,7 +42,8 @@ describe('db-collection-updater', () => {
         const crypto = new MockCryptoProvider('test-id');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
@@ -67,7 +68,8 @@ describe('db-collection-updater', () => {
         const crypto = new MockCryptoProvider('test-id');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
 
         // ---
         await updater.init('test');
@@ -93,7 +95,8 @@ describe('db-collection-updater', () => {
         const publicKey = await crypto.publicKey();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
 
         // ---
         await updater.init('test');
@@ -120,14 +123,16 @@ describe('db-collection-updater', () => {
         const cryptoCreator = new MockCryptoProvider('test-id-1');
         const updaterCreator: DbCollectionUpdater = new DbCollectionUpdater(
             content, cryptoCreator, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updaterCreator.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
@@ -154,14 +159,16 @@ describe('db-collection-updater', () => {
         const cryptoCreator = new MockCryptoProvider('test-id-1');
         const updaterCreator: DbCollectionUpdater = new DbCollectionUpdater(
             content, cryptoCreator, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updaterCreator.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1' without needing its address.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
 
         // ---
         await updater.init('test');
@@ -189,14 +196,16 @@ describe('db-collection-updater', () => {
         const publicKeyCreator = await cryptoCreator.publicKey();
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
             content, cryptoCreator, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updaterOther.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1'.
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -225,7 +234,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates public store and adds an item
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
             content, new MockCryptoProvider('test-id-1'), local,
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updaterOther.init('test');
         await updaterOther.add([{ _id: 'the-key' }]);
 
@@ -233,7 +243,8 @@ describe('db-collection-updater', () => {
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, local,
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
 
         // ---
         await updater.init('test');
@@ -257,7 +268,8 @@ describe('db-collection-updater', () => {
         const crypto_1 = new MockCryptoProvider('test-id-1');
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto_1, local,
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updaterOther.init('test');
         await updaterOther.add([{ _id: await crypto_1.publicKey() }]);
         expect(updaterOther.numEntries()).toEqual(1);
@@ -266,7 +278,8 @@ describe('db-collection-updater', () => {
         const crypto_2 = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto_2, local,
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
 
         // ---
         await updater.init('test');
@@ -289,7 +302,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates private store and adds an item
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
             content, new MockCryptoProvider('test-id-1'), local,
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updaterOther.init('test');
         await updaterOther.add([{ _id: 'the-key' }]);
 
@@ -297,7 +311,8 @@ describe('db-collection-updater', () => {
         const crypto = new MockCryptoProvider('test-id-2');
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, local,
-            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, address: updaterOther.address() });
 
         // ---
         await updater.init('test');
@@ -311,7 +326,8 @@ describe('db-collection-updater', () => {
         // Create updater with non-existent address
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, address: 'non-existent' });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, address: 'non-existent' });
 
         // ---
         const success = await updater.init('test');
@@ -320,6 +336,28 @@ describe('db-collection-updater', () => {
         // Check the updater failed to init
         expect(success).toBeFalsy();
     })
+
+    //
+    // --- close ---
+    //
+
+    it('closes', async () => {
+        // We'll store the address given to the close callback in here
+        let closeAddress = 'this-will-contain-the-close-address';
+
+        // Construct an updater
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            new MockContentStorage(), new MockCryptoProvider('test-id'), new MockLocalStorage(),
+            null, _ => { }, a => { closeAddress = a }, defaultCollectionOptions);
+        await updater.init('test');
+
+        // ---
+        updater.close();
+        // ---
+
+        // Check the close address matches the db updater address
+        expect(closeAddress).toEqual(updater.address());
+    });
 
     //
     // --- add ---
@@ -339,7 +377,8 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
@@ -400,7 +439,8 @@ describe('db-collection-updater', () => {
         const complexity = 4;
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, complexity });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, complexity });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -473,7 +513,8 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.None });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.None });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -549,7 +590,8 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.LastWriteWins });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.LastWriteWins });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -612,7 +654,8 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.FirstWriteWins });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, compactThreshold: 5, conflictResolution: ConflictResolution.FirstWriteWins });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -676,7 +719,8 @@ describe('db-collection-updater', () => {
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, compactThreshold: 4 });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, compactThreshold: 4 });
         await updater.init('test');
         const values = [
             { _id: 'key-1', value: 1 },
@@ -734,13 +778,15 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates private store
         const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
             content, new MockCryptoProvider('test-id-1'), local,
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updaterOther.init('test');
 
         // Identity 'test-id-2' opens the store created by 'test-id-1' and adds an item
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, new MockCryptoProvider('test-id-2'), local,
-            null, _ => { }, { ...defaultCollectionOptions, address: updaterOther.address() });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, address: updaterOther.address() });
         await updater.init('test');
 
         // ---
@@ -768,7 +814,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
         const value = { _id: publicKey, value: 'my-data' }
@@ -822,7 +869,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
         await updater.add([{ _id: publicKey, value: 'the-first-value' }]);
@@ -864,7 +912,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             new MockContentStorage(), new MockCryptoProvider('test-id-1'), new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
 
         // ---
@@ -881,7 +930,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             new MockContentStorage(), crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
         const firstValue = 'my-data';
@@ -906,7 +956,8 @@ describe('db-collection-updater', () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             new MockContentStorage(), crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn, conflictResolution: ConflictResolution.FirstWriteWins });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn, conflictResolution: ConflictResolution.FirstWriteWins });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
         const firstValue = 'my-data';
@@ -936,7 +987,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
@@ -967,7 +1019,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto_a, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updater.init('test');
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
@@ -1015,7 +1068,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto_a, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -1051,7 +1105,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto_a, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadWrite });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -1094,7 +1149,8 @@ describe('db-collection-updater', () => {
         const complexity = 4;
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(), new ConsoleLogSink(),
-            _ => { }, { ...defaultCollectionOptions, complexity });
+            _ => { }, _ => { },
+            { ...defaultCollectionOptions, complexity });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -1126,7 +1182,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions, conflictResolution: ConflictResolution.LastWriteWins });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, conflictResolution: ConflictResolution.LastWriteWins });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
@@ -1159,7 +1216,7 @@ describe('db-collection-updater', () => {
         const log = new MockLogSink();
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), log, _ => { },
+            content, crypto, new MockLocalStorage(), log, _ => { }, _ => { },
             { ...defaultCollectionOptions, conflictResolution: ConflictResolution.FirstWriteWins });
         await updater.init('test');
         let updated = false;
@@ -1195,7 +1252,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
@@ -1220,7 +1278,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry1: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
@@ -1259,7 +1318,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
@@ -1294,7 +1354,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
@@ -1331,7 +1392,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, _ => { }, { ...defaultCollectionOptions });
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
@@ -1373,7 +1435,8 @@ describe('db-collection-updater', () => {
 
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c }, { ...defaultCollectionOptions });
+            null, c => { collection = c }, _ => { },
+            { ...defaultCollectionOptions });
         await updater.init('test');
 
         const values = [

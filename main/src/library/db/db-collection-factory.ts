@@ -13,6 +13,7 @@ export interface IDbCollectionFactory {
         localStorage: ILocalStorage,
         log: ILogSink,
         publish: (ICollection) => void,
+        close: (string) => void,
         options: Partial<ICollectionOptions>): IDbCollectionUpdater;
 
     createCollection(updater: IDbCollectionUpdater): IDbCollection;
@@ -25,6 +26,7 @@ export class DbCollectionFactory implements IDbCollectionFactory {
         localStorage: ILocalStorage,
         log: ILogSink,
         publish: (ICollection) => void,
+        close: (string) => void,
         options: Partial<ICollectionOptions>): IDbCollectionUpdater {
         return new DbCollectionUpdater(
             contentAccessor,
@@ -32,6 +34,7 @@ export class DbCollectionFactory implements IDbCollectionFactory {
             localStorage,
             log,
             publish,
+            close,
             options);
     }
 

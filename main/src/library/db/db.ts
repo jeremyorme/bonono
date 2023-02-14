@@ -69,8 +69,12 @@ export class Db implements IDb {
             this._pubsub.publish('/db/' + this._name, collectionJson);
         };
 
+        const close = (address: string) => {
+            this._collectionUpdaters.delete(address);
+        }
+
         const collectionUpdater = this._dbCollectionFactory.createCollectionUpdater(
-            this._contentAccessor, this._cryptoProvider, this._localStorage, this._log, pub, options);
+            this._contentAccessor, this._cryptoProvider, this._localStorage, this._log, pub, close, options);
         await collectionUpdater.init(this._name + '/' + name);
         this._collectionUpdaters.set(collectionUpdater.address(), collectionUpdater);
 

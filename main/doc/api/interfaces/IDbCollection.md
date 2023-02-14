@@ -15,6 +15,7 @@ Interface for querying and updating a collection.
 - [address](IDbCollection.md#address)
 - [canRead](IDbCollection.md#canread)
 - [canWrite](IDbCollection.md#canwrite)
+- [close](IDbCollection.md#close)
 - [findOne](IDbCollection.md#findone)
 - [insertMany](IDbCollection.md#insertmany)
 - [insertOne](IDbCollection.md#insertone)
@@ -80,6 +81,24 @@ Gets whether the current identity has write access to the store.
 `boolean`
 
 true if write access granted, otherwise false
+
+___
+
+### close
+
+▸ **close**(): `any`
+
+Unsubscribes the collection so it no longer consumes resources.
+
+**`Remarks`**
+
+This should be called prior to disposing of the collection
+reference to remove its updater from the list held by the [IDb](IDb.md)
+instance, thus enabling it to be destroyed.
+
+#### Returns
+
+`any`
 
 ___
 
