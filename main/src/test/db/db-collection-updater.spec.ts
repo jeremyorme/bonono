@@ -976,6 +976,38 @@ describe('db-collection-updater', () => {
         expect(updater.index().get(publicKey)).toHaveProperty('value', firstValue);
     });
 
+    it('does not add entries when the current clock has reached max clock', async () => {
+        // Create collection (to be overwritten when add publishes)
+        let collection: ICollection = {
+            senderPublicKey: '',
+            address: '',
+            entryBlockLists: [],
+            addCount: NaN
+        };
+
+        // Construct an updater with private write access and add an entry
+        const crypto = new MockCryptoProvider('test-id');
+        const content = new MockContentStorage();
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, c => { collection = c; }, _ => { },
+            { ...defaultCollectionOptions, upperClock: 0 });
+        await updater.init('test');
+        let updatedValues: any[] = [];
+        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
+        const values = [
+            { _id: 'key-1', value: 1 },
+            { _id: 'key-2', value: 2 },
+            { _id: 'key-3', value: 3 }];
+
+        // ---
+        await updater.add(values);
+        // ---
+
+        // Check the entries were not added
+        expect(updater.numEntries()).toEqual(0);
+    });
+
     //
     // --- merge ---
     //
@@ -1420,6 +1452,37 @@ describe('db-collection-updater', () => {
         // ---
 
         expect(updater.numEntries()).toEqual(0);
+    });
+
+    it('does index merged entries with clock values greater than max clock', async () => {
+        const content = new MockContentStorage();
+        const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
+
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, new MockLocalStorage(),
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, upperClock: 0 });
+        await updater.init('test');
+        let updatedValues: any[] = [];
+        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
+
+        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+
+        const collection: ICollection = {
+            senderPublicKey: publicKey,
+            address: updater.address(),
+            entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
+            addCount: 1
+        };
+
+        // ---
+        await updater.merge(collection);
+        // ---
+
+        expect(updater.numEntries()).toEqual(1);
+        expect(updater.index().has('entry-0')).toBeFalsy();
+        expect(updatedValues.length).toEqual(0);
     });
 
     //

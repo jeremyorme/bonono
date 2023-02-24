@@ -50,6 +50,19 @@ export interface ICollectionOptions {
      * @defaultValue 0
      */
     complexity: number;
+
+    /**
+     * Lower clock value (inclusive) of entries to be indexed.
+     * @defaultValue 0
+     */
+    lowerClock: number;
+
+    /**
+     * Upper clock value (exclusive) of entries to be indexed.
+     * @remarks Set to -1 to disable max clock constraint
+     * @defaultValue -1
+     */
+    upperClock: number;
 }
 
 export const defaultCollectionOptions: ICollectionOptions = {
@@ -58,7 +71,9 @@ export const defaultCollectionOptions: ICollectionOptions = {
     entryBlockSize: 16,
     compactThreshold: 128,
     conflictResolution: ConflictResolution.LastWriteWins,
-    complexity: 0
+    complexity: 0,
+    lowerClock: 0,
+    upperClock: -1
 };
 
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
@@ -68,7 +83,9 @@ const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
         entryBlockSize: { type: 'uint32' },
         compactThreshold: { type: 'uint32' },
         conflictResolution: conflictResolutionSchema,
-        complexity: { type: 'uint32' }
+        complexity: { type: 'uint32' },
+        lowerClock: { type: 'uint32' },
+        upperClock: { type: 'uint32' }
     }
 };
 

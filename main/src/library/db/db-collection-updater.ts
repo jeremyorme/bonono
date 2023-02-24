@@ -193,7 +193,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         this._index.clear();
         if (this._manifest.publicAccess != AccessRights.None) {
             for (const entry of allEntries)
-                this._index.set(entry.value._id, entry.value);
+                if (entry.value._clock >= this._options.lowerClock && (this._options.upperClock == -1 || entry.value._clock < this._options.upperClock))
+                    this._index.set(entry.value._id, entry.value);
         }
         else {
             for (const entry of allEntries) {
@@ -202,7 +203,8 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                     ...JSON.parse(await this._cryptoProvider.decrypt(entry.value['payload'])),
                     _identity: entry.value['_identity']
                 };
-                this._index.set(obj._id, obj);
+                if (obj._clock >= this._options.lowerClock && (this._options.upperClock == -1 || obj._clock < this._options.upperClock))
+                    this._index.set(obj._id, obj);
             }
         }
 
@@ -240,7 +242,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     async add(objs: any[]): Promise<void> {
 
-        if (!this.canWrite() || objs.length == 0)
+        if (!this.canWrite() || objs.length == 0 || this._options.upperClock != -1 && (this._clock + 1) >= this._options.upperClock)
             return;
 
         const makeObject = (obj: any) => ({

@@ -13,6 +13,8 @@ Options for creating/opening a collection.
 - [complexity](ICollectionOptions.md#complexity)
 - [conflictResolution](ICollectionOptions.md#conflictresolution)
 - [entryBlockSize](ICollectionOptions.md#entryblocksize)
+- [maxClock](ICollectionOptions.md#maxclock)
+- [minClock](ICollectionOptions.md#minclock)
 - [publicAccess](ICollectionOptions.md#publicaccess)
 
 ## Properties
@@ -95,6 +97,34 @@ Specifies the number of entries to batch in a block.
 **`Default Value`**
 
 16
+
+___
+
+### maxClock
+
+• **maxClock**: `number`
+
+Maximum clock value of entries to be indexed.
+
+**`Remarks`**
+
+Set to -1 to disable max clock constraint
+
+**`Default Value`**
+
+-1
+
+___
+
+### minClock
+
+• **minClock**: `number`
+
+Minimum clock value of entries to be indexed.
+
+**`Default Value`**
+
+0
 
 ___
 
