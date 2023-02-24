@@ -977,24 +977,14 @@ describe('db-collection-updater', () => {
     });
 
     it('does not add entries when the current clock has reached max clock', async () => {
-        // Create collection (to be overwritten when add publishes)
-        let collection: ICollection = {
-            senderPublicKey: '',
-            address: '',
-            entryBlockLists: [],
-            addCount: NaN
-        };
-
         // Construct an updater with private write access and add an entry
         const crypto = new MockCryptoProvider('test-id');
         const content = new MockContentStorage();
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, _ => { },
+            null, _ => { }, _ => { },
             { ...defaultCollectionOptions, upperClock: 0 });
         await updater.init('test');
-        let updatedValues: any[] = [];
-        updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
         const values = [
             { _id: 'key-1', value: 1 },
             { _id: 'key-2', value: 2 },
