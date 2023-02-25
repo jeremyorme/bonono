@@ -13,9 +13,9 @@ Options for creating/opening a collection.
 - [complexity](ICollectionOptions.md#complexity)
 - [conflictResolution](ICollectionOptions.md#conflictresolution)
 - [entryBlockSize](ICollectionOptions.md#entryblocksize)
-- [maxClock](ICollectionOptions.md#maxclock)
-- [minClock](ICollectionOptions.md#minclock)
+- [lowerClock](ICollectionOptions.md#lowerclock)
 - [publicAccess](ICollectionOptions.md#publicaccess)
+- [upperClock](ICollectionOptions.md#upperclock)
 
 ## Properties
 
@@ -100,27 +100,11 @@ Specifies the number of entries to batch in a block.
 
 ___
 
-### maxClock
+### lowerClock
 
-• **maxClock**: `number`
+• **lowerClock**: `number`
 
-Maximum clock value of entries to be indexed.
-
-**`Remarks`**
-
-Set to -1 to disable max clock constraint
-
-**`Default Value`**
-
--1
-
-___
-
-### minClock
-
-• **minClock**: `number`
-
-Minimum clock value of entries to be indexed.
+Lower clock value (inclusive) of entries to be indexed.
 
 **`Default Value`**
 
@@ -141,3 +125,19 @@ Determines the access rights for peers other than the creator.
 **`Default Value`**
 
 [Read](../enums/AccessRights.md#read)
+
+___
+
+### upperClock
+
+• **upperClock**: `number`
+
+Upper clock value (exclusive) of entries to be indexed.
+
+**`Remarks`**
+
+Set to -1 to disable max clock constraint
+
+**`Default Value`**
+
+-1
