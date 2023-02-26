@@ -322,6 +322,37 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(1);
     });
 
+    it('inits existing non-empty private collection from creator public key', async () => {
+        // Create common content storage to share between updaters with different identities
+        const content = new MockContentStorage();
+
+        // Create common local storage to emulate sharing collections without pubsub
+        const local = new MockLocalStorage();
+
+        // Identity 'test-id-1' creates private store and adds an item
+        const cryptoOther = new MockCryptoProvider('test-id-1');
+        const updaterOther: DbCollectionUpdater = new DbCollectionUpdater(
+            content, cryptoOther, local,
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions });
+        await updaterOther.init('test');
+        await updaterOther.add([{ _id: 'the-key' }]);
+
+        // Identity 'test-id-2' opens the store created by 'test-id-1'.
+        const crypto = new MockCryptoProvider('test-id-2');
+        const updater: DbCollectionUpdater = new DbCollectionUpdater(
+            content, crypto, local,
+            null, _ => { }, _ => { },
+            { ...defaultCollectionOptions, creatorPublicKey: await cryptoOther.publicKey() });
+
+        // ---
+        await updater.init('test');
+        // ---
+
+        // Check that 'test-id-2' sees the entry created by 'test-id-1'
+        expect(updater.numEntries()).toEqual(1);
+    });
+
     it('inits non-existent collection', async () => {
         // Create updater with non-existent address
         const updater: DbCollectionUpdater = new DbCollectionUpdater(

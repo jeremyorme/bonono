@@ -63,6 +63,15 @@ export interface ICollectionOptions {
      * @defaultValue -1
      */
     upperClock: number;
+
+    /**
+     * Public key of the store owner.
+     * @remarks Set this to access a read-only store not owned by the current
+     * identity. If left unset for a store that is not publicly writeable, this
+     * defaults to the public key of the current user identity.
+     * @defaultValue unset
+     */
+    creatorPublicKey: string;
 }
 
 export const defaultCollectionOptions: ICollectionOptions = {
@@ -73,7 +82,8 @@ export const defaultCollectionOptions: ICollectionOptions = {
     conflictResolution: ConflictResolution.LastWriteWins,
     complexity: 0,
     lowerClock: 0,
-    upperClock: -1
+    upperClock: -1,
+    creatorPublicKey: ''
 };
 
 const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
@@ -85,7 +95,8 @@ const collectionOptionsSchema: JTDSchemaType<ICollectionOptions> = {
         conflictResolution: conflictResolutionSchema,
         complexity: { type: 'uint32' },
         lowerClock: { type: 'uint32' },
-        upperClock: { type: 'uint32' }
+        upperClock: { type: 'uint32' },
+        creatorPublicKey: { type: 'string' }
     }
 };
 

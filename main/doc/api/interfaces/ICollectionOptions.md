@@ -12,6 +12,7 @@ Options for creating/opening a collection.
 - [compactThreshold](ICollectionOptions.md#compactthreshold)
 - [complexity](ICollectionOptions.md#complexity)
 - [conflictResolution](ICollectionOptions.md#conflictresolution)
+- [creatorPublicKey](ICollectionOptions.md#creatorpublickey)
 - [entryBlockSize](ICollectionOptions.md#entryblocksize)
 - [lowerClock](ICollectionOptions.md#lowerclock)
 - [publicAccess](ICollectionOptions.md#publicaccess)
@@ -81,6 +82,24 @@ Specifies how to resolve multiple writes to the same key
 **`Default Value`**
 
 [LastWriteWins](../enums/ConflictResolution.md#lastwritewins)
+
+___
+
+### creatorPublicKey
+
+• **creatorPublicKey**: `string`
+
+Public key of the store owner.
+
+**`Remarks`**
+
+Set this to access a read-only store not owned by the current
+identity. If left unset for a store that is not publicly writeable, this
+defaults to the public key of the current user identity.
+
+**`Default Value`**
+
+unset
 
 ___
 

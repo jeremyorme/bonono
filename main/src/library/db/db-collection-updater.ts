@@ -84,9 +84,13 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 this._options.publicAccess == AccessRights.Read ||
                 this._options.publicAccess == AccessRights.None;
 
+            const creatorPublicKey = this._options.creatorPublicKey ?
+                this._options.creatorPublicKey :
+                hasPrivateWriteAccess ? this._selfIdentity.publicKey : '';
+
             this._manifest = {
                 name,
-                creatorPublicKey: hasPrivateWriteAccess ? this._selfIdentity.publicKey : '',
+                creatorPublicKey,
                 publicAccess: this._options.publicAccess,
                 entryBlockSize: this._options.entryBlockSize,
                 conflictResolution: this._options.conflictResolution,
