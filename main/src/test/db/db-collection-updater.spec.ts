@@ -955,7 +955,7 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(0);
     });
 
-    it('adds last object to read-any-write-own store with last write wins', async () => {
+    it('adds last valid object to read-any-write-own store with last write wins', async () => {
         const crypto = new MockCryptoProvider('test-id-1');
 
         // Identity 'test-id-1' creates read-any-write-own store
@@ -965,23 +965,25 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
-        const firstValue = 'my-data';
-        const lastValue = 'my-data-2';
+        const firstValidValue = 'my-data';
+        const lastValidValue = 'my-data-2';
+        const invalidValue = 'data-for-invalid-key';
 
         // ---
         await updater.add([
-            { _id: publicKey, value: firstValue },
-            { _id: publicKey, value: lastValue }
+            { _id: publicKey, value: firstValidValue },
+            { _id: publicKey, value: lastValidValue },
+            { _id: 'invalid', value: invalidValue }
         ]);
         // ---
 
         // Check no entry was not added
         expect(updater.numEntries()).toEqual(1);
         expect(updater.index().has(publicKey)).toBeTruthy();
-        expect(updater.index().get(publicKey)).toHaveProperty('value', lastValue);
+        expect(updater.index().get(publicKey)).toHaveProperty('value', lastValidValue);
     });
 
-    it('adds first object to read-any-write-own store with first write wins', async () => {
+    it('adds first valid object to read-any-write-own store with first write wins', async () => {
         const crypto = new MockCryptoProvider('test-id-1');
 
         // Identity 'test-id-1' creates read-any-write-own store
@@ -991,20 +993,22 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn, conflictResolution: ConflictResolution.FirstWriteWins });
         await updater.init('test');
         const publicKey = await crypto.publicKey();
-        const firstValue = 'my-data';
-        const lastValue = 'my-data-2';
+        const invalidValue = 'data-for-invalid-key';
+        const firstValidValue = 'my-data';
+        const lastValidValue = 'my-data-2';
 
         // ---
         await updater.add([
-            { _id: publicKey, value: firstValue },
-            { _id: publicKey, value: lastValue }
+            { _id: 'invalid', value: invalidValue },
+            { _id: publicKey, value: firstValidValue },
+            { _id: publicKey, value: lastValidValue }
         ]);
         // ---
 
         // Check no entry was not added
         expect(updater.numEntries()).toEqual(1);
         expect(updater.index().has(publicKey)).toBeTruthy();
-        expect(updater.index().get(publicKey)).toHaveProperty('value', firstValue);
+        expect(updater.index().get(publicKey)).toHaveProperty('value', firstValidValue);
     });
 
     it('does not add entries when the current clock has reached max clock', async () => {

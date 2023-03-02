@@ -266,12 +266,14 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         var myEntryBlockList: IEntryBlockList;
         const lastWriteWins = this._manifest.conflictResolution == ConflictResolution.LastWriteWins;
         if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn) {
-            var obj = objs[lastWriteWins ? objs.length - 1 : 0];
-
-            if (obj._id != this._selfIdentity.publicKey)
+            let i = 0;
+            for (; i < objs.length; ++i)
+                if (objs[lastWriteWins ? objs.length - 1 - i : i]._id == this._selfIdentity.publicKey)
+                    break;
+            if (i == objs.length)
                 return;
 
-            const objToAdd = makeObject(obj);
+            const objToAdd = makeObject(objs[lastWriteWins ? objs.length - 1 - i : i]);
 
             if (lastWriteWins || !this._index.has(objToAdd._id))
                 this._index.set(objToAdd._id, { ...objToAdd, _identity: this._selfIdentity });
