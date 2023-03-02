@@ -197,7 +197,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         this._index.clear();
         if (this._manifest.publicAccess != AccessRights.None) {
             for (const entry of allEntries)
-                if (entry.value._clock >= this._options.lowerClock && (this._options.upperClock == -1 || entry.value._clock < this._options.upperClock))
+                if (this._clockInRange(entry.value._clock))
                     this._index.set(entry.value._id, entry.value);
         }
         else {
@@ -244,9 +244,14 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             cb();
     }
 
+    private _clockInRange(clock: number): boolean {
+        return (clock >= this._options.lowerClock &&
+            this._options.upperClock == -1 || clock < this._options.upperClock);
+    }
+
     async add(objs: any[]): Promise<void> {
 
-        if (!this.canWrite() || objs.length == 0 || this._options.upperClock != -1 && (this._clock + 1) >= this._options.upperClock)
+        if (!this.canWrite() || objs.length == 0)
             return;
 
         const makeObject = (obj: any) => ({
@@ -275,7 +280,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
             const objToAdd = makeObject(objs[lastWriteWins ? objs.length - 1 - i : i]);
 
-            if (lastWriteWins || !this._index.has(objToAdd._id))
+            if ((lastWriteWins || !this._index.has(objToAdd._id)) && this._clockInRange(objToAdd._clock))
                 this._index.set(objToAdd._id, { ...objToAdd, _identity: this._selfIdentity });
             this._numEntries = 1;
 
@@ -295,8 +300,9 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             for (const objIn of objs) {
                 if (lastWriteWins || !this._index.has(objIn._id)) {
                     const objToAdd = makeObject(objIn);
-                    this._index.set(objIn._id, { ...objToAdd, _identity: this._selfIdentity });
                     objsToAdd.push(objToAdd);
+                    if (this._clockInRange(objToAdd._clock))
+                        this._index.set(objIn._id, { ...objToAdd, _identity: this._selfIdentity });
                 }
             }
             this._numEntries += objs.length;

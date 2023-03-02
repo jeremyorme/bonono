@@ -1011,7 +1011,7 @@ describe('db-collection-updater', () => {
         expect(updater.index().get(publicKey)).toHaveProperty('value', firstValidValue);
     });
 
-    it('does not add entries when the current clock has reached max clock', async () => {
+    it('does not add entries to index when the current clock has reached max clock', async () => {
         // Construct an updater with private write access and add an entry
         const crypto = new MockCryptoProvider('test-id');
         const content = new MockContentStorage();
@@ -1030,7 +1030,8 @@ describe('db-collection-updater', () => {
         // ---
 
         // Check the entries were not added
-        expect(updater.numEntries()).toEqual(0);
+        expect(updater.numEntries()).toEqual(3);
+        expect(updater.index().size).toEqual(0);
     });
 
     //
