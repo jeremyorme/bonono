@@ -1480,7 +1480,7 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(0);
     });
 
-    it('does index merged entries with clock values greater than max clock', async () => {
+    it('does index merged entries with clock values that are out of range', async () => {
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
@@ -1488,27 +1488,35 @@ describe('db-collection-updater', () => {
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
             content, crypto, new MockLocalStorage(),
             null, _ => { }, _ => { },
-            { ...defaultCollectionOptions, upperClock: 0 });
+            { ...defaultCollectionOptions, lowerClock: 2, upperClock: 4 });
         await updater.init('test');
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entries: IEntry[] = [
+            { value: { _id: 'entry-1', _clock: 1 } },
+            { value: { _id: 'entry-2', _clock: 2 } },
+            { value: { _id: 'entry-3', _clock: 3 } },
+            { value: { _id: 'entry-4', _clock: 4 } }
+        ];
 
         const collection: ICollection = {
             senderPublicKey: publicKey,
             address: updater.address(),
-            entryBlockLists: [await makeEntryBlockList([[entry]], content, crypto)],
-            addCount: 1
+            entryBlockLists: [await makeEntryBlockList([entries], content, crypto)],
+            addCount: 4
         };
 
         // ---
         await updater.merge(collection);
         // ---
 
-        expect(updater.numEntries()).toEqual(1);
-        expect(updater.index().has('entry-0')).toBeFalsy();
-        expect(updatedValues.length).toEqual(0);
+        expect(updater.numEntries()).toEqual(4);
+        expect(updater.index().has('entry-1')).toBeFalsy();
+        expect(updater.index().has('entry-2')).toBeTruthy();
+        expect(updater.index().has('entry-3')).toBeTruthy();
+        expect(updater.index().has('entry-4')).toBeFalsy();
+        expect(updatedValues.length).toEqual(2);
     });
 
     //

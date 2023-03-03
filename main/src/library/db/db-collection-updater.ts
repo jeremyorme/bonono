@@ -246,7 +246,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
     private _clockInRange(clock: number): boolean {
         return (clock >= this._options.lowerClock &&
-            this._options.upperClock == -1 || clock < this._options.upperClock);
+            (this._options.upperClock == -1 || clock < this._options.upperClock));
     }
 
     async add(objs: any[]): Promise<void> {
