@@ -120,36 +120,6 @@ describe('entry', () => {
         expect(log.warnings[0]).toEqual('Update containing block with invalid size was ignored (address = ' + address + ')');
     });
 
-    it('fails validation if block has more than one entry in ReadAnyWriteOwn mode', async () => {
-        const log = new MockLogSink();
-        const address = 'store-address';
-        const crypto = new MockCryptoProvider('test-id');
-        const publicKey = await crypto.publicKey();
-        const entryBlock: IEntryBlock = {
-            entries: [
-                { value: { _id: publicKey, _clock: 1 } },
-                { value: { _id: publicKey, _clock: 2 } }]
-        };
-
-        const manifest: ICollectionManifest = {
-            name: 'my-store',
-            creatorPublicKey: publicKey,
-            publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
-        };
-
-        // ---
-        const valid = await isEntryBlockValid(entryBlock, true, manifest, publicKey, crypto, address, log);
-        // ---
-
-        expect(valid).toBeFalsy();
-        expect(log.errors.length).toEqual(0);
-        expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update containing multiple entries for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-    });
-
     it('fails validation if the block contains invalid entries', async () => {
         const log = new MockLogSink();
         const address = 'store-address';

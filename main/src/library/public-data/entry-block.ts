@@ -39,12 +39,5 @@ export async function isEntryBlockValid(entryBlock: IEntryBlock | null, isLast: 
         return false;
     }
 
-    // check_num_entries(IEntryBlock.entries)
-    if (manifest.publicAccess == AccessRights.ReadAnyWriteOwn &&
-        entryBlock.entries.length > 1) {
-        log?.warning('Update containing multiple entries for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-        return false;
-    }
-
     return (await Promise.all(entryBlock.entries.map(e => isEntryValid(e, manifest, publicKey, cryptoProvider, address, log)))).every(e => e);
 }
