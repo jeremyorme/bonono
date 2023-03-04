@@ -1,6 +1,6 @@
 {
     "name": "bonono",
-    "version": "0.5.10",
+    "version": "0.5.11",
     "description": "Peer-to-peer database component",
     "main": "dist/index.cjs.js",
     "module": "dist/index.js",
