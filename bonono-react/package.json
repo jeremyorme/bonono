@@ -1,7 +1,7 @@
 {
     "name": "bonono-react",
     "sideEffects": false,
-    "version": "0.5.9",
+    "version": "0.5.10",
     "description": "React specific wrapper for Bonono",
     "repository": {
         "type": "git",
@@ -33,7 +33,7 @@
         "typescript": "^4.7.4"
     },
     "dependencies": {
-        "bonono": "^0.5.9"
+        "bonono": "^0.5.10"
     },
     "peerDependencies": {
         "react": "^18.0.0",
