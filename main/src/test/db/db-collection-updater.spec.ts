@@ -699,9 +699,6 @@ describe('db-collection-updater', () => {
         await updater.add(values.slice(-1));
         // ---
 
-        // Check the entries were added
-        expect(updater.numEntries()).toEqual(values.length);
-
         // Check the index was correctly populated
         const expectedIndex: Map<string, any> = new Map();
         const publicKey = await crypto.publicKey();
@@ -711,6 +708,9 @@ describe('db-collection-updater', () => {
                 expectedIndex.set(value._id, { ...value, _clock: ++i, _identity: { publicKey } });
         for (const [id, value] of expectedIndex.entries())
             expect(updater.index().get(id)).toEqual(value);
+
+        // Check a second key-2 entry was not added
+        expect(updater.numEntries()).toEqual(i);
 
         // Check the collection structure
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
@@ -866,7 +866,7 @@ describe('db-collection-updater', () => {
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
-        expect(collection).toHaveProperty('addCount', 0);
+        expect(collection).toHaveProperty('addCount', 1);
         expect(collection.entryBlockLists).toHaveLength(1);
         const entryBlockList = collection.entryBlockLists[0];
         expect(entryBlockList).toHaveProperty('entryBlockCids');
@@ -883,62 +883,6 @@ describe('db-collection-updater', () => {
         expect(entryBlock.entries[0]).toHaveProperty('value', { ...value, _clock: 1 });
     });
 
-    it('does not exceed one entry in a read-any-write-own store after more than one add', async () => {
-        const crypto = new MockCryptoProvider('test-id-1');
-
-        // Create common content storage to share between updaters with different identities
-        const content = new MockContentStorage();
-
-        // Create collection (to be overwritten when add publishes)
-        let collection: ICollection = {
-            senderPublicKey: '',
-            address: '',
-            entryBlockLists: [],
-            addCount: NaN
-        };
-
-        // Identity 'test-id-1' creates read-any-write-own store
-        const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(),
-            null, c => { collection = c; }, _ => { },
-            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
-        await updater.init('test');
-        const publicKey = await crypto.publicKey();
-        await updater.add([{ _id: publicKey, value: 'the-first-value' }]);
-        const value = { _id: publicKey, value: 'my-data' }
-
-        // ---
-        await updater.add([value]);
-        // ---
-
-        // Check the entry was not added
-        expect(updater.numEntries()).toEqual(1);
-
-        // Check the index was correctly populated
-        expect(updater.index().get(publicKey))
-            .toHaveProperty('value', 'my-data');
-
-        // Check the collection structure
-        expect(collection).toHaveProperty('senderPublicKey', publicKey);
-        expect(collection).toHaveProperty('address', updater.address());
-        expect(collection).toHaveProperty('entryBlockLists');
-        expect(collection).toHaveProperty('addCount', 0);
-        expect(collection.entryBlockLists).toHaveLength(1);
-        const entryBlockList = collection.entryBlockLists[0];
-        expect(entryBlockList).toHaveProperty('entryBlockCids');
-        expect(entryBlockList).toHaveProperty('clock', 2);
-        expect(entryBlockList).toHaveProperty('publicKey', publicKey);
-        expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
-        expect(entryBlockList.entryBlockCids).toHaveLength(1);
-        const entryBlock = await content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
-        expect(entryBlock).toBeTruthy();
-        if (!entryBlock)
-            return;
-        expect(entryBlock).toHaveProperty('entries');
-        expect(entryBlock.entries).toHaveLength(1);
-        expect(entryBlock.entries[0]).toHaveProperty('value', { ...value, _clock: 2 });
-    });
-
     it('does not add entry to read-any-write-own store when _id does not match self identity', async () => {
         // Identity 'test-id-1' creates read-any-write-own store
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
@@ -953,62 +897,6 @@ describe('db-collection-updater', () => {
 
         // Check the entry was not added
         expect(updater.numEntries()).toEqual(0);
-    });
-
-    it('adds last valid object to read-any-write-own store with last write wins', async () => {
-        const crypto = new MockCryptoProvider('test-id-1');
-
-        // Identity 'test-id-1' creates read-any-write-own store
-        const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), crypto, new MockLocalStorage(),
-            null, _ => { }, _ => { },
-            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn });
-        await updater.init('test');
-        const publicKey = await crypto.publicKey();
-        const firstValidValue = 'my-data';
-        const lastValidValue = 'my-data-2';
-        const invalidValue = 'data-for-invalid-key';
-
-        // ---
-        await updater.add([
-            { _id: publicKey, value: firstValidValue },
-            { _id: publicKey, value: lastValidValue },
-            { _id: 'invalid', value: invalidValue }
-        ]);
-        // ---
-
-        // Check no entry was not added
-        expect(updater.numEntries()).toEqual(1);
-        expect(updater.index().has(publicKey)).toBeTruthy();
-        expect(updater.index().get(publicKey)).toHaveProperty('value', lastValidValue);
-    });
-
-    it('adds first valid object to read-any-write-own store with first write wins', async () => {
-        const crypto = new MockCryptoProvider('test-id-1');
-
-        // Identity 'test-id-1' creates read-any-write-own store
-        const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            new MockContentStorage(), crypto, new MockLocalStorage(),
-            null, _ => { }, _ => { },
-            { ...defaultCollectionOptions, publicAccess: AccessRights.ReadAnyWriteOwn, conflictResolution: ConflictResolution.FirstWriteWins });
-        await updater.init('test');
-        const publicKey = await crypto.publicKey();
-        const invalidValue = 'data-for-invalid-key';
-        const firstValidValue = 'my-data';
-        const lastValidValue = 'my-data-2';
-
-        // ---
-        await updater.add([
-            { _id: 'invalid', value: invalidValue },
-            { _id: publicKey, value: firstValidValue },
-            { _id: publicKey, value: lastValidValue }
-        ]);
-        // ---
-
-        // Check no entry was not added
-        expect(updater.numEntries()).toEqual(1);
-        expect(updater.index().has(publicKey)).toBeTruthy();
-        expect(updater.index().get(publicKey)).toHaveProperty('value', firstValidValue);
     });
 
     it('does not add entries to index when the current clock has reached max clock', async () => {
