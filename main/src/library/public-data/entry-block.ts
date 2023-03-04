@@ -1,7 +1,6 @@
 import Ajv, { JTDSchemaType } from 'ajv/dist/jtd';
 import { IEntry, entrySchema, isEntryValid } from './entry';
 import { ILogSink } from '../services/log-sink';
-import { AccessRights } from './access-rights';
 import { ICollectionManifest } from './collection-manifest';
 import { ICryptoProvider } from '../services/crypto-provider';
 
