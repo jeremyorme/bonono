@@ -366,7 +366,10 @@ describe('db-collection-updater', () => {
 
         // Check the updater failed to init
         expect(success).toBeFalsy();
-    })
+
+        // Check the address was not set
+        expect(updater.address()).toBeFalsy();
+    });
 
     //
     // --- close ---

@@ -73,11 +73,11 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
 
         var manifest: ICollectionManifest | null;
         if (this._options.address) {
-            this._address = this._options.address;
-            manifest = await this._contentAccessor.getObject<ICollectionManifest>(this._address);
-            if (manifest == null || !isCollectionManifestValid(manifest, this._address, this._log))
+            manifest = await this._contentAccessor.getObject<ICollectionManifest>(this._options.address);
+            if (manifest == null || !isCollectionManifestValid(manifest, this._options.address, this._log))
                 return false;
             this._manifest = manifest;
+            this._address = this._options.address;
         }
         else {
             const hasPrivateWriteAccess =
