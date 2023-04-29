@@ -98,32 +98,6 @@ describe('entry block list', () => {
         expect(log.warnings[0]).toEqual('Empty update was ignored (address = ' + address + ')');
     });
 
-    it('fails validation if block list has more than one block in ReadAnyWriteOwn mode', async () => {
-        const log = new MockLogSink();
-        const content = new MockContentStorage();
-        const address = 'store-address';
-        const crypto = new MockCryptoProvider('test-id');
-        const entryBlockList: IEntryBlockList = await makeEntryBlockList([[], []], content, crypto);
-
-        const manifest: ICollectionManifest = {
-            name: 'my-store',
-            creatorPublicKey: await crypto.publicKey(),
-            publicAccess: AccessRights.ReadAnyWriteOwn,
-            entryBlockSize: 16,
-            conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
-        };
-
-        // ---
-        const valid = await isEntryBlockListValid(entryBlockList, crypto, manifest, address, log);
-        // ---
-
-        expect(valid).toBeFalsy();
-        expect(log.errors.length).toEqual(0);
-        expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update containing multiple blocks for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-    });
-
     it('fails validation if write access is not granted', async () => {
         const log = new MockLogSink();
         const content = new MockContentStorage();

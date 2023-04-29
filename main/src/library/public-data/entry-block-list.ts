@@ -31,13 +31,6 @@ export async function isEntryBlockListValid(entryBlockList: IEntryBlockList, cry
         return false;
     }
 
-    // check_num_entry_blocks(IEntryBlockList.entryBlockCids);
-    if (manifest.publicAccess == AccessRights.ReadAnyWriteOwn &&
-        entryBlockList.entryBlockCids.length > 1) {
-        log?.warning('Update containing multiple blocks for ReadAnyWriteOwn store was ignored (address = ' + address + ')');
-        return false;
-    }
-
     // check_has_write_access(IEntryBlockList.publicKey, ICollectionManifest.creatorPublicKey)
     const isPrivateWriteAccess =
         manifest.publicAccess == AccessRights.Read ||
