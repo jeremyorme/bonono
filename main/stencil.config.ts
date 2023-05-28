@@ -26,7 +26,10 @@ export const config: Config = {
         },
     ],
     testing: {
-        browserWaitUntil: "networkidle0"
+        browserWaitUntil: "networkidle0",
+        collectCoverage: true,
+        collectCoverageFrom: ['src/**/*.ts', '!**/node_modules/**'],
+        coverageProvider: 'v8'
     },
     rollupPlugins: {
         after: [
