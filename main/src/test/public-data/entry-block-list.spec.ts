@@ -16,7 +16,7 @@ describe('entry block list', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
 
         const manifest: ICollectionManifest = {
@@ -43,7 +43,7 @@ describe('entry block list', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: publicKey, _clock: 1 } };
+        const entry: IEntry = { _id: publicKey, _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
 
         const manifest: ICollectionManifest = {
@@ -104,7 +104,7 @@ describe('entry block list', () => {
         const address = 'store-address';
         const cryptoOwner = new MockCryptoProvider('test-id-own');
         const cryptoWriter = new MockCryptoProvider('test-id-wr');
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, cryptoWriter);
 
         const manifest: ICollectionManifest = {
@@ -131,7 +131,7 @@ describe('entry block list', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
 
         const manifest: ICollectionManifest = {
@@ -160,7 +160,7 @@ describe('entry block list', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
 
         const manifest: ICollectionManifest = {
@@ -190,7 +190,7 @@ describe('entry block list', () => {
         const content = new MockContentStorage();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[entry]], content, crypto);
         entryBlockList.publicKey = 'LIUQGJDA,HDAS';
 
@@ -220,8 +220,8 @@ describe('entry block list', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([
-            [{ value: { _id: 'id', _clock: 2 } }, { value: { _id: 'id', _clock: 1 } }],
-            [{ value: { _id: 'id', _clock: 0 } }, { value: { _id: 'id', _clock: 3 } }]
+            [{ _id: 'id', _clock: 2 }, { _id: 'id', _clock: 1 }],
+            [{ _id: 'id', _clock: 0 }, { _id: 'id', _clock: 3 }]
         ], content, crypto);
 
         const manifest: ICollectionManifest = {
@@ -257,8 +257,8 @@ describe('entry block list', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([
-            [{ value: { _id: 'id', _clock: 0 } }, { value: { _id: 'id', _clock: 1 } }],
-            [{ value: { _id: 'id', _clock: 2 } }, { value: { _id: 'id', _clock: 3 } }]
+            [{ _id: 'id', _clock: 0 }, { _id: 'id', _clock: 1 }],
+            [{ _id: 'id', _clock: 2 }, { _id: 'id', _clock: 3 }]
         ], content, crypto);
         entryBlockList.clock = 5;
         entryBlockList.signature = '';
@@ -297,9 +297,9 @@ describe('entry block list', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const existing_entry = { value: { _id: publicKey, _clock: 1, data: 'existing' } };
+        const existing_entry = { _id: publicKey, _clock: 1, data: 'existing' };
         const existing_entry_block: IEntryBlock = { entries: [existing_entry] };
-        const new_entry = { value: { _id: publicKey, _clock: 1, data: 'new' } };
+        const new_entry = { _id: publicKey, _clock: 1, data: 'new' };
         const new_entry_block: IEntryBlock = { entries: [new_entry] };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([[new_entry]], content, crypto);
 
@@ -331,19 +331,19 @@ describe('entry block list', () => {
         // Existing history is 4 entries with incrementing count
         const existing_entry_block: IEntryBlock = {
             entries: [
-                { value: { _id: publicKey, _clock: 1, data: 1 } } as IEntry,
-                { value: { _id: publicKey, _clock: 2, data: 2 } } as IEntry,
-                { value: { _id: publicKey, _clock: 3, data: 3 } } as IEntry,
-                { value: { _id: publicKey, _clock: 4, data: 4 } } as IEntry]
+                { _id: publicKey, _clock: 1, data: 1 } as IEntry,
+                { _id: publicKey, _clock: 2, data: 2 } as IEntry,
+                { _id: publicKey, _clock: 3, data: 3 } as IEntry,
+                { _id: publicKey, _clock: 4, data: 4 } as IEntry]
         };
 
         // Add a new entry (5) and also remove an existing one (4)
         const new_entry_block: IEntryBlock = {
             entries: [
-                { value: { _id: publicKey, _clock: 1, data: 1 } } as IEntry,
-                { value: { _id: publicKey, _clock: 2, data: 2 } } as IEntry,
-                { value: { _id: publicKey, _clock: 3, data: 3 } } as IEntry,
-                { value: { _id: publicKey, _clock: 5, data: 5 } } as IEntry]
+                { _id: publicKey, _clock: 1, data: 1 } as IEntry,
+                { _id: publicKey, _clock: 2, data: 2 } as IEntry,
+                { _id: publicKey, _clock: 3, data: 3 } as IEntry,
+                { _id: publicKey, _clock: 5, data: 5 } as IEntry]
         };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([new_entry_block.entries], content, crypto);
 
@@ -375,19 +375,19 @@ describe('entry block list', () => {
         // Existing history is 4 entries with incrementing count
         const existing_entry_block: IEntryBlock = {
             entries: [
-                { value: { _id: publicKey, _clock: 1, data: 1 } } as IEntry,
-                { value: { _id: publicKey, _clock: 2, data: 2 } } as IEntry,
-                { value: { _id: publicKey, _clock: 3, data: 3 } } as IEntry,
-                { value: { _id: publicKey, _clock: 4, data: 4 } } as IEntry]
+                { _id: publicKey, _clock: 1, data: 1 } as IEntry,
+                { _id: publicKey, _clock: 2, data: 2 } as IEntry,
+                { _id: publicKey, _clock: 3, data: 3 } as IEntry,
+                { _id: publicKey, _clock: 4, data: 4 } as IEntry]
         };
 
         // Add a new entry (5) and also remove an existing non-effective one (3)
         const new_entry_block: IEntryBlock = {
             entries: [
-                { value: { _id: publicKey, _clock: 1, data: 1 } } as IEntry,
-                { value: { _id: publicKey, _clock: 2, data: 2 } } as IEntry,
-                { value: { _id: publicKey, _clock: 4, data: 4 } } as IEntry,
-                { value: { _id: publicKey, _clock: 5, data: 5 } } as IEntry]
+                { _id: publicKey, _clock: 1, data: 1 } as IEntry,
+                { _id: publicKey, _clock: 2, data: 2 } as IEntry,
+                { _id: publicKey, _clock: 4, data: 4 } as IEntry,
+                { _id: publicKey, _clock: 5, data: 5 } as IEntry]
         };
         const entryBlockList: IEntryBlockList = await makeEntryBlockList([new_entry_block.entries], content, crypto);
 

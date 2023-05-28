@@ -1,11 +1,11 @@
 import { JTDSchemaType } from 'ajv/dist/jtd';
 
-export interface IProofOfWork {
+export interface IProof {
     signature: string;
     nonce: string;
 }
 
-export const proofOfWorkSchema: JTDSchemaType<IProofOfWork> = {
+export const proofSchema: JTDSchemaType<IProof> = {
     properties: {
         signature: { type: 'string' },
         nonce: { type: 'string' }

@@ -6,7 +6,6 @@ import { ILogSink } from '../services/log-sink';
 import { IEntryBlock, isEntryBlockValid } from './entry-block';
 import { mergeArrays } from '../util/arrays';
 import { IEntry } from './entry';
-import { ConflictResolution } from './conflict-resolution';
 
 export interface IEntryBlockList {
     entryBlockCids: string[];
@@ -62,41 +61,31 @@ export async function areEntryBlocksValid(entryBlocks: (IEntryBlock | null)[], o
         mergeArrays(entryBlocks.map(entryBlock => entryBlock ? entryBlock.entries : [])),
         mergeArrays(originalEntryBlocks.map(originalEntryBlock => originalEntryBlock ? originalEntryBlock.entries : [])),
         entryBlockList,
-        manifest.conflictResolution,
         address,
         log);
 }
 
-export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, conflictResolution: ConflictResolution, address: string, log: ILogSink | null) {
+export function areEntryBlockListEntriesValid(entries: (IEntry | null)[], originalEntries: (IEntry | null)[], entryBlockList: IEntryBlockList, address: string, log: ILogSink | null) {
     // check_strictly_increasing(IEntry.clock, IEntry.clock)
-    if (!entries.reduce((p, c) => !p || !c ? null : p.value._clock < c.value._clock ? c : null)) {
+    if (!entries.reduce((p, c) => !p || !c ? null : p._clock < c._clock ? c : null)) {
         log?.warning('Update containing non-increasing clocks was ignored (address = ' + address + ')');
         return false;
     }
 
     // check_max(IEntryBlockList.clock, IEntry.clock)
     const lastEntry = entries.slice(-1)[0];
-    if (lastEntry && lastEntry.value._clock != entryBlockList.clock) {
+    if (lastEntry && lastEntry._clock != entryBlockList.clock) {
         log?.warning('Update containing incorrect clock was ignored (address = ' + address + ')');
         return false;
-    }
-
-    // check_overwrites(IEntry.value._id)
-    if (conflictResolution == ConflictResolution.FirstWriteWins) {
-        const entryIdSet: Set<string> = new Set();
-        if (entries.some(e => e && (entryIdSet.has(e.value._id) || !entryIdSet.add(e.value._id)))) {
-            log?.warning('Update containing entry block list with multiple writes with the same _id in first-write-wins mode was ignored (address = ' + address + ')');
-            return false;
-        };
     }
 
     // check_history(IEntryBlockList.entryBlockCids, IEntryBlockList.entryBlockCids)
     const originalEntryMap: Map<string, IEntry> = new Map();
     const historicalEntryMap: Map<string, IEntry> = new Map();
     const lastOriginalEntry = originalEntries.slice(-1)[0];
-    const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry.value._clock : 0;
-    originalEntries.forEach(e => { if (e) originalEntryMap.set(e.value._id, e) });
-    entries.forEach(e => { if (e && e.value._clock <= lastOriginalEntryClock) historicalEntryMap.set(e.value._id, e) });
+    const lastOriginalEntryClock = lastOriginalEntry ? lastOriginalEntry._clock : 0;
+    originalEntries.forEach(e => { if (e) originalEntryMap.set(e._id, e) });
+    entries.forEach(e => { if (e && e._clock <= lastOriginalEntryClock) historicalEntryMap.set(e._id, e) });
     const originalString = JSON.stringify([...originalEntryMap.entries()]);
     const historicalString = JSON.stringify([...historicalEntryMap.entries()]);
     if (originalString != historicalString) {

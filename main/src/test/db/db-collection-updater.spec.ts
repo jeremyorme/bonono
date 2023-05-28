@@ -11,9 +11,6 @@ import { IEntry } from '../../library/public-data/entry';
 import { makeEntryBlockList } from '../test_util/collection-utils';
 import { AccessRights } from '../../library/public-data/access-rights';
 import { ConflictResolution } from '../../library/public-data/conflict-resolution';
-import { IObject } from '../../library/public-data/object';
-import { ConsoleLogSink } from '../../library/services/console-log-sink';
-import { MockLogSink } from '../test_util/mock-log-sink';
 
 describe('db-collection-updater', () => {
 
@@ -453,8 +450,10 @@ describe('db-collection-updater', () => {
         expect(entryBlock).toHaveProperty('entries');
         expect(entryBlock.entries).toHaveLength(values.length);
         for (let i = 0; i < entryBlock.entries.length; ++i) {
-            const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
+            const entry = entryBlock.entries[i];
+            expect(entry).toHaveProperty('value', values[i].value);
+            expect(entry).toHaveProperty('_id', values[i]._id);
+            expect(entry).toHaveProperty('_clock', i + 1);
         }
     });
 
@@ -469,6 +468,7 @@ describe('db-collection-updater', () => {
 
         // Construct an updater with private write access and add an entry
         const crypto = new MockCryptoProvider('test-id');
+        const publicKey = await crypto.publicKey();
         const content = new MockContentStorage();
         const complexity = 4;
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
@@ -490,10 +490,32 @@ describe('db-collection-updater', () => {
         // Check the entries were added
         expect(updater.numEntries()).toEqual(values.length);
 
+        // Helper to check an entry is valid
+        const checkEntry = (e: IEntry, id: string, value: number, clock: number) => {
+            expect(e).toBeTruthy();
+            expect(e).toHaveProperty('value', value);
+            expect(e).toHaveProperty('_id', id);
+            expect(e).toHaveProperty('_clock', clock);
+            expect(e).toHaveProperty('_proof');
+            if (e._proof) {
+                const entryNoProof = { ...e };
+                delete entryNoProof._proof;
+                expect(crypto.verify_complex(
+                    entryNoProof,
+                    e._proof.signature,
+                    publicKey,
+                    updater.address(),
+                    e._proof.nonce,
+                    complexity)).toBeTruthy();
+            }
+        }
+
         // Check the index was correctly populated
-        const publicKey = await crypto.publicKey();
-        for (let i = 0; i < values.length; ++i)
-            expect(updater.index().get(values[i]._id)).toEqual({ ...values[i], _clock: i + 1, _identity: { publicKey } });
+        for (let i = 0; i < values.length; ++i) {
+            const entry = updater.index().get(values[i]._id);
+            checkEntry(entry, values[i]._id, values[i].value, i + 1);
+            expect(entry).toHaveProperty('_identity', { publicKey });
+        }
 
         // Check the collection structure
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
@@ -513,21 +535,8 @@ describe('db-collection-updater', () => {
             return;
         expect(entryBlock).toHaveProperty('entries');
         expect(entryBlock.entries).toHaveLength(values.length);
-        for (let i = 0; i < entryBlock.entries.length; ++i) {
-            const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
-            expect(entries[i]).toHaveProperty('proofOfWork');
-            const proofOfWork = entries[i].proofOfWork;
-            if (proofOfWork) {
-                expect(crypto.verify_complex(
-                    { value: { ...entries[i].value, clock: entries[i].value._clock } },
-                    proofOfWork.signature,
-                    entryBlockList.publicKey,
-                    updater.address(),
-                    proofOfWork.nonce,
-                    complexity)).toBeTruthy();
-            }
-        }
+        for (let i = 0; i < entryBlock.entries.length; ++i)
+            checkEntry(entryBlock.entries[i], values[i]._id, values[i].value, i + 1);
 
         // Check we were notified
         expect(updated).toBeTruthy();
@@ -590,20 +599,12 @@ describe('db-collection-updater', () => {
             return;
         expect(entryBlock).toHaveProperty('entries');
         expect(entryBlock.entries).toHaveLength(values.length);
-        const encrypt = async obj => {
-            const payload = { ...obj };
-            const id = payload._id;
-            delete payload._id;
-            delete payload._clock;
-            delete payload._identity;
-            return {
-                _id: await crypto.encrypt(id),
-                payload: await crypto.encrypt(JSON.stringify(payload))
-            }
-        }
+
         for (let i = 0; i < entryBlock.entries.length; ++i) {
-            const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...await encrypt(values[i]), _clock: i + 1 });
+            const entry = entryBlock.entries[i];
+            expect(entry).toHaveProperty('_id', await crypto.encrypt(values[i]._id));
+            expect(entry).toHaveProperty('_clock', i + 1);
+            expect(entry).toHaveProperty('payload', await crypto.encrypt(JSON.stringify({ value: values[i].value })));
         }
 
         // Check we were notified
@@ -669,8 +670,10 @@ describe('db-collection-updater', () => {
         expect(entryBlock).toHaveProperty('entries');
         expect(entryBlock.entries).toHaveLength(values.length);
         for (let i = 0; i < entryBlock.entries.length; ++i) {
-            const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
+            const entry = entryBlock.entries[i];
+            expect(entry).toHaveProperty('value', values[i].value);
+            expect(entry).toHaveProperty('_id', values[i]._id);
+            expect(entry).toHaveProperty('_clock', i + 1);
         }
     });
 
@@ -712,18 +715,18 @@ describe('db-collection-updater', () => {
         for (const [id, value] of expectedIndex.entries())
             expect(updater.index().get(id)).toEqual(value);
 
-        // Check a second key-2 entry was not added
-        expect(updater.numEntries()).toEqual(i);
+        // Even though 2nd key-2 wasn't indexed, it's entry is still added
+        expect(updater.numEntries()).toEqual(values.length);
 
         // Check the collection structure
         expect(collection).toHaveProperty('senderPublicKey', publicKey);
         expect(collection).toHaveProperty('address', updater.address());
         expect(collection).toHaveProperty('entryBlockLists');
-        expect(collection).toHaveProperty('addCount', 0);
+        expect(collection).toHaveProperty('addCount', values.length);
         expect(collection.entryBlockLists).toHaveLength(1);
         const entryBlockList = collection.entryBlockLists[0];
         expect(entryBlockList).toHaveProperty('entryBlockCids');
-        expect(entryBlockList).toHaveProperty('clock', i);
+        expect(entryBlockList).toHaveProperty('clock', values.length);
         expect(entryBlockList).toHaveProperty('publicKey', publicKey);
         expect(entryBlockList).toHaveProperty('signature', await crypto.sign({ ...entryBlockList, signature: '' }));
         expect(entryBlockList.entryBlockCids).toHaveLength(1);
@@ -732,10 +735,12 @@ describe('db-collection-updater', () => {
         if (!entryBlock)
             return;
         expect(entryBlock).toHaveProperty('entries');
-        expect(entryBlock.entries).toHaveLength(i);
+        expect(entryBlock.entries).toHaveLength(values.length);
         for (let i = 0; i < entryBlock.entries.length; ++i) {
-            const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
+            const entry = entryBlock.entries[i];
+            expect(entry).toHaveProperty('value', values[i].value);
+            expect(entry).toHaveProperty('_id', values[i]._id);
+            expect(entry).toHaveProperty('_clock', i + 1);
         }
     });
 
@@ -797,9 +802,16 @@ describe('db-collection-updater', () => {
             return;
         expect(entryBlock).toHaveProperty('entries');
         expect(entryBlock.entries).toHaveLength(values.length - 1);
-        expect(entryBlock.entries[0]).toHaveProperty('value', { ...values[0], _clock: 1 });
-        expect(entryBlock.entries[1]).toHaveProperty('value', { ...values[2], _clock: 3 });
-        expect(entryBlock.entries[2]).toHaveProperty('value', { ...values[3], _clock: 4 });
+
+        const checkEntry = (i: number, j: number) => {
+            const entry = entryBlock.entries[i];
+            expect(entry).toHaveProperty('value', values[j].value);
+            expect(entry).toHaveProperty('_id', values[j]._id);
+            expect(entry).toHaveProperty('_clock', j + 1);
+        }
+        checkEntry(0, 0);
+        checkEntry(1, 2);
+        checkEntry(2, 3);
     });
 
     it('does not add entry when write access is not granted', async () => {
@@ -882,8 +894,11 @@ describe('db-collection-updater', () => {
         if (!entryBlock)
             return;
         expect(entryBlock).toHaveProperty('entries');
-        expect(entryBlock.entries).toHaveLength(1);
-        expect(entryBlock.entries[0]).toHaveProperty('value', { ...value, _clock: 1 });
+        const entries = entryBlock.entries;
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toHaveProperty('value', value.value);
+        expect(entries[0]).toHaveProperty('_id', value._id);
+        expect(entries[0]).toHaveProperty('_clock', 1);
     });
 
     it('does not add entry to read-any-write-own store when _id does not match self identity', async () => {
@@ -942,7 +957,7 @@ describe('db-collection-updater', () => {
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
 
         const collection: ICollection = {
             senderPublicKey: publicKey,
@@ -958,7 +973,7 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(1);
         expect(updater.index().has('entry-0')).toBeTruthy();
         expect(updatedValues.length).toEqual(1);
-        expect(updatedValues[0]).toEqual({ ...entry.value, _clock: 1, _identity: { publicKey } });
+        expect(updatedValues[0]).toEqual({ ...entry, _identity: { publicKey } });
     });
 
     it('merges a valid collection into a non-empty collection', async () => {
@@ -974,7 +989,7 @@ describe('db-collection-updater', () => {
         let updatedValues: any[] = [];
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
 
-        const entry_a: IEntry = { value: { _id: 'entry-a', _clock: 1 } };
+        const entry_a: IEntry = { _id: 'entry-a', _clock: 1 };
 
         const collection_a: ICollection = {
             senderPublicKey: publicKey_a,
@@ -985,7 +1000,7 @@ describe('db-collection-updater', () => {
 
         await updater.merge(collection_a);
 
-        const entry_b: IEntry = { value: { _id: 'entry-b', _clock: 2 } };
+        const entry_b: IEntry = { _id: 'entry-b', _clock: 2 };
 
         const crypto_b = new MockCryptoProvider('test-id-b');
         const publicKey_b = await crypto_b.publicKey();
@@ -1004,8 +1019,8 @@ describe('db-collection-updater', () => {
         expect(updater.index().has('entry-a')).toBeTruthy();
         expect(updater.index().has('entry-b')).toBeTruthy();
         expect(updatedValues.length).toEqual(2);
-        expect(updatedValues[0]).toEqual({ ...entry_a.value, _clock: 1, _identity: { publicKey: publicKey_a } });
-        expect(updatedValues[1]).toEqual({ ...entry_b.value, _clock: 2, _identity: { publicKey: publicKey_b } });
+        expect(updatedValues[0]).toEqual({ ...entry_a, _identity: { publicKey: publicKey_a } });
+        expect(updatedValues[1]).toEqual({ ...entry_b, _identity: { publicKey: publicKey_b } });
     });
 
     it('merges entries with same clock in public key order', async () => {
@@ -1025,10 +1040,10 @@ describe('db-collection-updater', () => {
 
         const key = 'entry';
         const value_a = 'a';
-        const entry_a: IEntry = { value: { _id: key, _clock: 1, value: value_a } as IObject };
+        const entry_a: IEntry = { _id: key, _clock: 1, value: value_a } as IEntry;
 
         const value_b = 'b';
-        const entry_b: IEntry = { value: { _id: key, _clock: 1, value: value_b } as IObject };
+        const entry_b: IEntry = { _id: key, _clock: 1, value: value_b } as IEntry;
 
         const collection: ICollection = {
             senderPublicKey: publicKey_a,
@@ -1066,10 +1081,10 @@ describe('db-collection-updater', () => {
         const value_a = 'a';
         const value_b = 'b';
 
-        const entry_a1: IEntry = { value: { _id: key_x, _clock: 1, value: value_a } as IObject }; // A: x = a
-        const entry_b1: IEntry = { value: { _id: key_x, _clock: 2, value: value_b } as IObject }; // B: x = b
-        const entry_b2: IEntry = { value: { _id: key_y, _clock: 3, value: value_b } as IObject }; // B: y = b
-        const entry_a2: IEntry = { value: { _id: key_y, _clock: 4, value: value_a } as IObject }; // A: y = a
+        const entry_a1: IEntry = { _id: key_x, _clock: 1, value: value_a } as IEntry; // A: x = a
+        const entry_b1: IEntry = { _id: key_x, _clock: 2, value: value_b } as IEntry; // B: x = b
+        const entry_b2: IEntry = { _id: key_y, _clock: 3, value: value_b } as IEntry; // B: y = b
+        const entry_a2: IEntry = { _id: key_y, _clock: 4, value: value_a } as IEntry; // A: y = a
 
         const collection: ICollection = {
             senderPublicKey: await crypto_a.publicKey(),
@@ -1097,16 +1112,16 @@ describe('db-collection-updater', () => {
 
         const complexity = 4;
         const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), new ConsoleLogSink(),
+            content, crypto, new MockLocalStorage(), null,
             _ => { }, _ => { },
             { ...defaultCollectionOptions, complexity });
         await updater.init('test');
         let updated = false;
         updater.onUpdated(() => { updated = true; });
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
         const [signature, nonce] = await crypto.sign_complex(entry, updater.address(), complexity);
-        entry.proofOfWork = { signature, nonce };
+        entry._proof = { signature, nonce };
 
         const collection: ICollection = {
             senderPublicKey: publicKey,
@@ -1138,8 +1153,8 @@ describe('db-collection-updater', () => {
         updater.onUpdated(() => { updated = true; });
 
         const entries: IEntry[] = [
-            { value: { _id: 'entry-0', _clock: 1, val: 1 } as IObject },
-            { value: { _id: 'entry-0', _clock: 2, val: 2 } as IObject }];
+            { _id: 'entry-0', _clock: 1, val: 1 } as IEntry,
+            { _id: 'entry-0', _clock: 2, val: 2 } as IEntry];
 
         const collection: ICollection = {
             senderPublicKey: publicKey,
@@ -1154,44 +1169,8 @@ describe('db-collection-updater', () => {
 
         expect(updater.numEntries()).toEqual(2);
         expect(updater.index().has('entry-0')).toBeTruthy();
-        expect(updater.index().get('entry-0')).toEqual({ ...entries[1].value, _identity: { publicKey } });
+        expect(updater.index().get('entry-0')).toEqual({ ...entries[1], _identity: { publicKey } });
         expect(updated).toBeTruthy();
-    });
-
-    it('fails to overwrite value for a key when merging with first write wins', async () => {
-        const content = new MockContentStorage();
-        const crypto = new MockCryptoProvider('test-id');
-        const publicKey = await crypto.publicKey();
-        const log = new MockLogSink();
-
-        const updater: DbCollectionUpdater = new DbCollectionUpdater(
-            content, crypto, new MockLocalStorage(), log, _ => { }, _ => { },
-            { ...defaultCollectionOptions, conflictResolution: ConflictResolution.FirstWriteWins });
-        await updater.init('test');
-        let updated = false;
-        updater.onUpdated(() => { updated = true; });
-
-        const entries: IEntry[] = [
-            { value: { _id: 'entry-0', _clock: 1, val: 1 } as IObject },
-            { value: { _id: 'entry-0', _clock: 2, val: 2 } as IObject }];
-
-        const collection: ICollection = {
-            senderPublicKey: publicKey,
-            address: updater.address(),
-            entryBlockLists: [await makeEntryBlockList([entries], content, crypto)],
-            addCount: 1
-        };
-
-        // ---
-        await updater.merge(collection);
-        // ---
-
-        expect(updater.numEntries()).toEqual(0);
-        expect(updater.index().has('entry-0')).toBeFalsy();
-        expect(updated).toBeFalsy();
-
-        expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update containing entry block list with multiple writes with the same _id in first-write-wins mode was ignored (address = ' + updater.address() + ')');
     });
 
     it('does not merge an invalid collection', async () => {
@@ -1205,8 +1184,9 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions });
         await updater.init('test');
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
 
+        // Collection is missing addCount property
         const collection: ICollection = {
             senderPublicKey: publicKey,
             address: updater.address(),
@@ -1231,7 +1211,7 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions });
         await updater.init('test');
 
-        const entry1: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry1: IEntry = { _id: 'entry-0', _clock: 1 };
 
         const collection1: ICollection = {
             senderPublicKey: publicKey,
@@ -1242,7 +1222,7 @@ describe('db-collection-updater', () => {
 
         await updater.merge(collection1);
 
-        const entry2: IEntry = { value: { _id: 'entry-1', _clock: 1 } };
+        const entry2: IEntry = { _id: 'entry-1', _clock: 1 };
 
         const collection2: ICollection = {
             senderPublicKey: publicKey,
@@ -1271,10 +1251,11 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions });
         await updater.init('test');
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
 
         const entryBlock: IEntryBlock = { entries: [entry] };
 
+        // Entry block list does not have a valid signature
         const entryBlockList: IEntryBlockList = {
             entryBlockCids: [await content.putObject(entryBlock)],
             clock: 1,
@@ -1307,8 +1288,9 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions });
         await updater.init('test');
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
 
+        // Entry block has a property that isn't allowed by the schema
         const entryBlock: IEntryBlock = { entries: [entry], rogueProperty: true } as IEntryBlock;
 
         const entryBlockList: IEntryBlockList = {
@@ -1345,10 +1327,11 @@ describe('db-collection-updater', () => {
             { ...defaultCollectionOptions });
         await updater.init('test');
 
-        const entry: IEntry = { value: { _id: 'entry-0', _clock: 1 } };
+        const entry: IEntry = { _id: 'entry-0', _clock: 1 };
 
         const entryBlock: IEntryBlock = { entries: [entry] } as IEntryBlock;
 
+        // Entry block stored using a different content storage service
         const entryBlockList: IEntryBlockList = {
             entryBlockCids: [await wrongContent.putObject(entryBlock)],
             clock: 1,
@@ -1371,7 +1354,7 @@ describe('db-collection-updater', () => {
         expect(updater.numEntries()).toEqual(0);
     });
 
-    it('does index merged entries with clock values that are out of range', async () => {
+    it('does not index merged entries with clock values that are out of range', async () => {
         const content = new MockContentStorage();
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
@@ -1385,10 +1368,10 @@ describe('db-collection-updater', () => {
         updater.onUpdated(() => { updatedValues = [...updater.index().values()]; });
 
         const entries: IEntry[] = [
-            { value: { _id: 'entry-1', _clock: 1 } },
-            { value: { _id: 'entry-2', _clock: 2 } },
-            { value: { _id: 'entry-3', _clock: 3 } },
-            { value: { _id: 'entry-4', _clock: 4 } }
+            { _id: 'entry-1', _clock: 1 },
+            { _id: 'entry-2', _clock: 2 },
+            { _id: 'entry-3', _clock: 3 },
+            { _id: 'entry-4', _clock: 4 }
         ];
 
         const collection: ICollection = {
@@ -1460,7 +1443,9 @@ describe('db-collection-updater', () => {
         expect(entryBlock.entries).toHaveLength(values.length);
         for (let i = 0; i < entryBlock.entries.length; ++i) {
             const entries = entryBlock.entries;
-            expect(entries[i]).toHaveProperty('value', { ...values[i], _clock: i + 1 });
+            expect(entries[i]).toHaveProperty('value', values[i].value);
+            expect(entries[i]).toHaveProperty('_id', values[i]._id);
+            expect(entries[i]).toHaveProperty('_clock', i + 1);
         }
     });
 });

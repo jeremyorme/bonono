@@ -11,7 +11,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -36,7 +36,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: publicKey, _clock: 1, } };
+        const entry: IEntry = { _id: publicKey, _clock: 1 };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -61,7 +61,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1, } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -80,7 +80,7 @@ describe('entry', () => {
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
         expect(log.warnings[0]).toEqual('Update to ReadAnyWriteOwn collection containing entry not keyed by writer\'s public key was ignored ' +
-            '(entry id = ' + entry.value._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
+            '(entry id = ' + entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
     });
 
     it('passes validation for a valid entry with required proof of work', async () => {
@@ -88,10 +88,10 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const complexity = 4;
         const [signature, nonce] = await crypto.sign_complex(entry, address, complexity);
-        entry.proofOfWork = { signature, nonce };
+        entry._proof = { signature, nonce };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -111,15 +111,15 @@ describe('entry', () => {
         expect(log.warnings.length).toEqual(0);
     });
 
-    it('fails validation if entry is missing required proof of work', async () => {
+    it('fails validation if entry is inadequate required proof of work', async () => {
         const log = new MockLogSink();
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const complexity = 4;
         const [signature, nonce] = await crypto.sign_complex(entry, address, complexity);
-        entry.proofOfWork = { signature, nonce };
+        entry._proof = { signature, nonce };
 
         const requiredComplexity = 32;
         const manifest: ICollectionManifest = {
@@ -138,8 +138,8 @@ describe('entry', () => {
         expect(valid).toBeFalsy();
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update to collection containing entry with missing or inadequate proof-of-work was ignored (entry id = ' +
-            entry.value._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
+        expect(log.warnings[0]).toEqual('Update to collection containing entry with inadequate proof-of-work was ignored (entry id = ' +
+            entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
     });
 
     it('fails validation if entry has inadequate proof of work', async () => {
@@ -147,7 +147,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
 
         const manifest: ICollectionManifest = {
             name: 'my-store',
@@ -165,7 +165,7 @@ describe('entry', () => {
         expect(valid).toBeFalsy();
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
-        expect(log.warnings[0]).toEqual('Update to collection containing entry with missing or inadequate proof-of-work was ignored (entry id = ' +
-            entry.value._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
+        expect(log.warnings[0]).toEqual('Update to collection containing entry with missing proof-of-work was ignored (entry id = ' +
+            entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
     });
 });

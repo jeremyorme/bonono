@@ -12,7 +12,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
@@ -96,7 +96,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
@@ -125,7 +125,7 @@ describe('entry', () => {
         const address = 'store-address';
         const crypto = new MockCryptoProvider('test-id');
         const publicKey = await crypto.publicKey();
-        const entry: IEntry = { value: { _id: 'id', _clock: 1 } };
+        const entry: IEntry = { _id: 'id', _clock: 1 };
         const entryBlock: IEntryBlock = {
             entries: [entry]
         };
@@ -147,6 +147,6 @@ describe('entry', () => {
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
         expect(log.warnings[0]).toEqual('Update to ReadAnyWriteOwn collection containing entry not keyed by writer\'s public key was ignored ' +
-            '(entry id = ' + entry.value._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
+            '(entry id = ' + entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
     });
 });

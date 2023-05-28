@@ -10,7 +10,6 @@ import { IContentAccessor } from '../services/content-accessor';
 import { ICryptoProvider } from '../services/crypto-provider';
 import { ILocalStorage } from '../services/local-storage';
 import { AccessRights } from '../public-data/access-rights';
-import { IObject } from '../public-data/object';
 import { ILogSink } from '../services/log-sink';
 import { ConflictResolution } from '../public-data/conflict-resolution';
 import { IIdentity } from '../private-data/identity';
@@ -178,9 +177,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 _identity = { publicKey };
                 this._identityCache.set(publicKey, _identity);
             }
-            const updatedEntry = { ...entry };
-            updatedEntry.value = { ...updatedEntry.value, _identity } as IObject
-            return updatedEntry;
+            return { ...entry, _identity };
         };
 
         const allEntries = mergeArrays(sortedMergedEntryBlockListUpdates.map(u =>
@@ -190,22 +187,22 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
         this._numEntries = allEntries.length;
 
         if (allEntries.length > 0)
-            this._clock = allEntries.slice(-1)[0].value._clock;
+            this._clock = allEntries.slice(-1)[0]._clock;
         if (this._manifest.conflictResolution == ConflictResolution.FirstWriteWins)
             allEntries.reverse();
 
         this._index.clear();
         if (this._manifest.publicAccess != AccessRights.None) {
             for (const entry of allEntries)
-                if (this._clockInRange(entry.value._clock))
-                    this._index.set(entry.value._id, entry.value);
+                if (this._clockInRange(entry._clock))
+                    this._index.set(entry._id, entry);
         }
         else {
             for (const entry of allEntries) {
                 const obj = {
-                    _id: await this._cryptoProvider.decrypt(entry.value._id),
-                    ...JSON.parse(await this._cryptoProvider.decrypt(entry.value['payload'])),
-                    _identity: entry.value['_identity']
+                    _id: await this._cryptoProvider.decrypt(entry._id),
+                    ...JSON.parse(await this._cryptoProvider.decrypt(entry['payload'])),
+                    _identity: entry['_identity']
                 };
                 if (obj._clock >= this._options.lowerClock && (this._options.upperClock == -1 || obj._clock < this._options.upperClock))
                     this._index.set(obj._id, obj);
@@ -249,103 +246,93 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             (this._options.upperClock == -1 || clock < this._options.upperClock));
     }
 
-    async add(objs: any[]): Promise<void> {
+    async add(entries: any[]): Promise<void> {
 
-        if (!this.canWrite() || objs.length == 0)
+        if (!this.canWrite() || entries.length == 0)
             return;
 
-        const makeObject = (obj: any) => ({
-            ...obj,
-            _clock: ++this._clock
-        });
+        // For ReadAnyWriteOwn collection, filter out entries not keyed by own public key
+        const isReadAnyWriteOwn = this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn;
+        const validEntries = entries.filter(e => !isReadAnyWriteOwn || e._id == this._selfIdentity.publicKey);
 
-        const makeEntry = async (obj: IObject) => {
-            const entry: IEntry = { value: obj };
-            if (this._manifest.complexity > 0) {
-                const [signature, nonce] = await this._cryptoProvider.sign_complex(entry, this._address, this._manifest.complexity);
-                entry.proofOfWork = { signature, nonce };
-            }
-            return entry;
-        }
+        // Add clocks and make two copies (public and private)
+        const publicEntries = validEntries.map(e => ({ ...e, _clock: ++this._clock }));
+        const privateEntries = publicEntries.map(e => ({ ...e }));
 
-        var myEntryBlockList: IEntryBlockList;
-        const lastWriteWins = this._manifest.conflictResolution == ConflictResolution.LastWriteWins;
+        // Get (or create new) and set own entry block list
+        const myEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey) || {
+            entryBlockCids: [],
+            clock: 0,
+            publicKey: this._selfIdentity.publicKey,
+            signature: ''
+        };
+        this._entryBlockLists.set(this._selfIdentity.publicKey, myEntryBlockList);
 
-        let objsToAdd: any[] = [];
-        for (const objIn of objs)
-            if (lastWriteWins || !this._index.has(objIn._id))
-                objsToAdd.push(makeObject(objIn));
-
-        if (this._manifest.publicAccess == AccessRights.ReadAnyWriteOwn)
-            objsToAdd = objsToAdd.filter(o => o._id == this._selfIdentity.publicKey);
-
-        this._numEntries += objsToAdd.length;
-
-        for (const objToAdd of objsToAdd)
-            if (this._clockInRange(objToAdd._clock))
-                this._index.set(objToAdd._id, { ...objToAdd, _identity: this._selfIdentity });
-
-        const maybeMyEntryBlockList = this._entryBlockLists.get(this._selfIdentity.publicKey);
-        if (maybeMyEntryBlockList) {
-            myEntryBlockList = maybeMyEntryBlockList;
-        }
-        else {
-            myEntryBlockList = {
-                entryBlockCids: [],
-                clock: 0,
-                publicKey: this._selfIdentity.publicKey,
-                signature: ''
-            };
-            this._entryBlockLists.set(this._selfIdentity.publicKey, myEntryBlockList);
-        }
-
-        var lastBlock: IEntryBlock = { entries: [] };
+        // Get entries contained in the last partial block, if there is one
+        var lastEntries: IEntry[] = [];
         if (myEntryBlockList.entryBlockCids.length > 0) {
             const maybeLastBlock = await this._contentAccessor.getObject<IEntryBlock>(myEntryBlockList.entryBlockCids.slice(-1)[0]);
-            if (!maybeLastBlock)
-                return;
-            lastBlock = maybeLastBlock;
+            if (maybeLastBlock && maybeLastBlock.entries.length != this._options.entryBlockSize)
+                lastEntries = maybeLastBlock.entries;
         }
 
-        const removeSpecialProperties = (obj: IObject): any => {
-            const clone: any = { ...obj };
+        // Helper to remove properties that should be excluded from encryption
+        const removeSpecialProperties = (entry: IEntry): any => {
+            const clone: any = { ...entry };
             delete clone._id;
             delete clone._clock;
+            delete clone._proof;
             delete clone._identity;
             return clone;
         }
 
-        const encryptIfRequired = async (obj: any): Promise<any> => {
-            return this._manifest.publicAccess == AccessRights.None ? {
-                _id: await this._cryptoProvider.encrypt(obj._id),
-                _clock: obj._clock,
-                payload: await this._cryptoProvider.encrypt(JSON.stringify(removeSpecialProperties(obj)))
-            } : obj;
+        for (let i = 0; i < validEntries.length; ++i) {
+            // Encrypt id and data of public entry if public access is forbidden
+            if (this._manifest.publicAccess == AccessRights.None) {
+                const e = publicEntries[i];
+                e._id = await this._cryptoProvider.encrypt(e._id);
+                e.payload = await this._cryptoProvider.encrypt(JSON.stringify(removeSpecialProperties(e)));
+            }
+
+            // Add proof to public and private entries, if missing and required
+            if (!publicEntries[i]._proof && this._manifest.complexity > 0) {
+                const [signature, nonce] = await this._cryptoProvider.sign_complex(publicEntries[i], this._address, this._manifest.complexity);
+                publicEntries[i]._proof = privateEntries[i]._proof = { signature, nonce };
+            }
         }
 
-        const lastEntries = lastBlock.entries.length != this._options.entryBlockSize ? lastBlock.entries : [];
-        const encryptedObjs = await Promise.all(objsToAdd.map(obj => encryptIfRequired(obj)));
-        let newBlockEntries = [...lastEntries, ...await Promise.all(encryptedObjs.map(obj => makeEntry(obj)))];
+        // Add to index entries within clock range
+        const entriesInRange = privateEntries.filter(e => this._clockInRange(e._clock));
+        for (const e of entriesInRange)
+            if (this._manifest.conflictResolution != ConflictResolution.FirstWriteWins || !this._index.has(e._id))
+                this._index.set(e._id, { ...e, _identity: this._selfIdentity });
 
+        // Create array of entries to be written in new blocks (encrypt new entries as needed)
+        let newBlockEntries = [...lastEntries, ...publicEntries];
+
+        // Split into blocks
         const newBlocks: IEntryBlock[] = [];
         while (newBlockEntries.length > 0) {
             newBlocks.push({ entries: newBlockEntries.slice(0, this._options.entryBlockSize) });
             newBlockEntries = newBlockEntries.slice(this._options.entryBlockSize);
         }
 
+        // Store the blocks to get their CIDs and update the CIDs in the entry block list
         const newBlockCids = await Promise.all(newBlocks.map(eb => this._contentAccessor.putObject(eb)));
         const oldBlockCids = lastEntries.length > 0 ?
             myEntryBlockList.entryBlockCids.slice(0, myEntryBlockList.entryBlockCids.length - 1) :
             myEntryBlockList.entryBlockCids;
-
         myEntryBlockList.entryBlockCids = [...oldBlockCids, ...newBlockCids];
 
-        // Skip compaction if threshold is non-positive or using first-write-wins mode
-        if (this._options.compactThreshold > 0 && this._manifest.conflictResolution != ConflictResolution.FirstWriteWins) {
+        // Update the entry count
+        this._numEntries += publicEntries.length;
 
-            this._addCount += objsToAdd.length;
+        // Only do compaction if threshold is positive
+        if (this._options.compactThreshold > 0) {
 
-            // Skip compaction if threshold not reached
+            this._addCount += publicEntries.length;
+
+            // Only do compaction if threshold was reached/exceeded
             if (this._addCount >= this._options.compactThreshold) {
 
                 this._addCount %= this._options.compactThreshold;
@@ -353,8 +340,10 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 const myEntries: IEntry[] = mergeArrays(myEntryBlocks.map(eb => eb ? eb.entries : []));
 
                 const myEffectiveEntryMap: Map<string, IEntry> = new Map();
+                if (this._manifest.conflictResolution == ConflictResolution.FirstWriteWins)
+                    myEntries.reverse();
                 for (const entry of myEntries)
-                    myEffectiveEntryMap.set(entry.value._id, entry);
+                    myEffectiveEntryMap.set(entry._id, entry);
                 const myEffectiveEntries = Array.from(myEffectiveEntryMap.values());
                 this._numEntries += myEffectiveEntries.length - myEntries.length;
 
@@ -369,6 +358,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             }
         }
 
+        // Sign the entry block list
         myEntryBlockList.clock = this._clock;
         myEntryBlockList.signature = '';
         myEntryBlockList.signature = await this._cryptoProvider.sign(myEntryBlockList);
@@ -384,6 +374,7 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
             addCount: this._addCount
         });
 
+        // Notify local listeners
         this._notifyUpdated();
     }
 
