@@ -23,7 +23,7 @@ describe('entry', () => {
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---

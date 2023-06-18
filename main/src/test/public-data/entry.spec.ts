@@ -19,7 +19,7 @@ describe('entry', () => {
             publicAccess: AccessRights.ReadWrite,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -44,7 +44,7 @@ describe('entry', () => {
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -139,7 +139,7 @@ describe('entry', () => {
         expect(log.errors.length).toEqual(0);
         expect(log.warnings.length).toEqual(1);
         expect(log.warnings[0]).toEqual('Update to collection containing entry with inadequate proof-of-work was ignored (entry id = ' +
-            entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
+            entry._id + ', owner public key = ' + publicKey + ', signer public key = ' + publicKey + ', address = ' + address + ')');
     });
 
     it('fails validation if entry has inadequate proof of work', async () => {

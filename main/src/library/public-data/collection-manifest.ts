@@ -21,7 +21,7 @@ const collectionManifestSchema: JTDSchemaType<ICollectionManifest> = {
         publicAccess: accessRightsSchema,
         entryBlockSize: { type: 'uint32' },
         conflictResolution: conflictResolutionSchema,
-        complexity: { type: 'uint32' }
+        complexity: { type: 'int32' }
     }
 };
 

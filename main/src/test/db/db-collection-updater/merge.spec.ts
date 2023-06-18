@@ -182,7 +182,7 @@ describe('db-collection-updater merge', () => {
 
         const entry: IEntry = { _id: 'entry-0', _clock: 1 };
         const [signature, nonce] = await env.cryptoOwn.sign_complex(entry, env.updaterOwn.address(), complexity);
-        entry._proof = { signature, nonce };
+        entry._proof = { signature, nonce, publicKey: env.publicKeyOwn };
 
         const collection: ICollection = {
             senderPublicKey: env.publicKeyOwn,

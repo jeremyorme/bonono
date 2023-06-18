@@ -13,6 +13,7 @@ import { AccessRights } from '../public-data/access-rights';
 import { ILogSink } from '../services/log-sink';
 import { ConflictResolution } from '../public-data/conflict-resolution';
 import { IIdentity } from '../private-data/identity';
+import { IProof } from '../public-data/proof';
 
 export interface IDbCollectionUpdater {
     init(name: string): Promise<boolean>;
@@ -294,10 +295,31 @@ export class DbCollectionUpdater implements IDbCollectionUpdater {
                 e.payload = await this._cryptoProvider.encrypt(JSON.stringify(removeSpecialProperties(e)));
             }
 
-            // Add proof to public and private entries, if missing and required
-            if (!publicEntries[i]._proof && this._manifest.complexity > 0) {
-                const [signature, nonce] = await this._cryptoProvider.sign_complex(publicEntries[i], this._address, this._manifest.complexity);
-                publicEntries[i]._proof = privateEntries[i]._proof = { signature, nonce };
+            // Add proof to public and private entries, if required
+            // If complexity > 0, always add (proofs of work are non-portable)
+            // If complexity == 0, add if not already present, otherwise keep existing proof
+            if (this._manifest.complexity > 0 || !publicEntries[i]._proof && this._manifest.complexity == 0) {
+                // Strip _proof and _identity before signing
+                const entryStripped = { ...publicEntries[i] };
+                delete entryStripped._proof;
+                delete entryStripped._identity;
+
+                // If portable, strip clock before signing
+                if (this._manifest.complexity == 0)
+                    delete entryStripped._clock;
+
+                // If portable, don't include collection address in signature
+                const prefix = this._manifest.complexity > 0 ? this._address : '';
+
+                // Sign and generate proof
+                const [signature, nonce] = await this._cryptoProvider.sign_complex(entryStripped, prefix, this._manifest.complexity);
+                const proof: IProof = { signature, nonce };
+
+                // If portable, include signer's public key in proof
+                if (this._manifest.complexity == 0)
+                    proof.publicKey = this._selfIdentity.publicKey;
+
+                publicEntries[i]._proof = privateEntries[i]._proof = proof;
             }
         }
 

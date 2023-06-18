@@ -52,7 +52,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.ReadAnyWriteOwn,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -230,7 +230,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.Read,
             entryBlockSize: 2,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -270,7 +270,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.Read,
             entryBlockSize: 2,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -309,7 +309,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -353,7 +353,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---
@@ -397,7 +397,7 @@ describe('entry block list', () => {
             publicAccess: AccessRights.Read,
             entryBlockSize: 16,
             conflictResolution: ConflictResolution.LastWriteWins,
-            complexity: 0
+            complexity: -1
         };
 
         // ---

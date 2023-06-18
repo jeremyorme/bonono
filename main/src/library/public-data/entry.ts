@@ -3,7 +3,7 @@ import { ICollectionManifest } from './collection-manifest';
 import { AccessRights } from './access-rights';
 import { ILogSink } from '../services/log-sink';
 import { ICryptoProvider } from '../services/crypto-provider';
-import { IProof, proofSchema } from './proof';
+import { IProof, isProofValid, proofSchema } from './proof';
 
 export interface IEntry {
     _id: string;
@@ -31,23 +31,8 @@ export async function isEntryValid(entry: IEntry, manifest: ICollectionManifest,
         return false;
     }
 
-    // check_complexity(IEntry._proof, ICollectionManifest.complexity)
-    if (manifest.complexity > 0) {
-        if (!entry._proof) {
-            log?.warning('Update to collection containing entry with missing proof-of-work was ignored ' +
-                '(entry id = ' + entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
-            return false;
-        }
-
-        const proof = { ...entry._proof };
-        delete entry._proof;
-
-        if (!await cryptoProvider.verify_complex(entry, proof.signature, publicKey, address, proof.nonce, manifest.complexity)) {
-            log?.warning('Update to collection containing entry with inadequate proof-of-work was ignored ' +
-                '(entry id = ' + entry._id + ', owner public key = ' + publicKey + ', address = ' + address + ')');
-            return false;
-        }
-    }
+    if (!await isProofValid(entry, manifest, publicKey, cryptoProvider, address, log))
+        return false;
 
     // success!
     return true;

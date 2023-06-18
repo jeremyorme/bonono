@@ -88,31 +88,32 @@ describe('db-collection-updater add', () => {
         // Generate expected entries containing value and incrementing clock
         const expectedEntries = values.map((v, i) => ({ ...v, _clock: i + 1 }));
 
-        // Helper to check entry has valid properties and proof
-        const checkEntry = (e, i) => {
-            expect(e).toBeTruthy();
+        // Helper to check entry has valid proof
+        const checkProof = e => {
+            if (!e._proof)
+                return false;
+            const entryStripped = { ...e };
+            delete entryStripped._proof;
+            delete entryStripped._identity;
+            return env.cryptoOwn.verify_complex(
+                entryStripped,
+                e._proof.signature,
+                env.publicKeyOwn,
+                env.updaterOwn.address(),
+                e._proof.nonce,
+                complexity);
+        };
+
+        // Check update was notified with expected entries including identity
+        expect(env.updatesOwn).toHaveLength(1);
+        const updateOwn = env.updatesOwn[0];
+        updateOwn.forEach((e, i) => {
             expect(e).toHaveProperty('value', expectedEntries[i].value);
             expect(e).toHaveProperty('_id', expectedEntries[i]._id);
             expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
             expect(e).toHaveProperty('_proof');
-            if (e._proof) {
-                const entryNoProof = { ...e };
-                delete entryNoProof._proof;
-                expect(env.cryptoOwn.verify_complex(
-                    entryNoProof,
-                    e._proof.signature,
-                    env.publicKeyOwn,
-                    env.updaterOwn.address(),
-                    e._proof.nonce,
-                    complexity)).toBeTruthy();
-            }
-        };
-
-        // Check update was notified with expected entries augmented with identity
-        expect(env.updatesOwn).toHaveLength(1);
-        const updateOwn = env.updatesOwn[0];
-        updateOwn.forEach(checkEntry);
-        updateOwn.forEach(e => { expect(e).toHaveProperty('_identity', { publicKey: env.publicKeyOwn }) });
+            expect(e).toHaveProperty('_identity', { publicKey: env.publicKeyOwn });
+        });
 
         // Check a collection was published to peers
         expect(env.published).toHaveLength(1);
@@ -146,7 +147,209 @@ describe('db-collection-updater add', () => {
             // Check the entry block contains the expected entries
             expect(entryBlock).toHaveProperty('entries');
             expect(entryBlock.entries).toHaveLength(values.length);
-            entryBlock.entries.forEach(checkEntry);
+            entryBlock.entries.forEach((e, i) => {
+                expect(e).toBeTruthy();
+                expect(e).toHaveProperty('value', expectedEntries[i].value);
+                expect(e).toHaveProperty('_id', expectedEntries[i]._id);
+                expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
+                expect(e).toHaveProperty('_proof');
+            })
+            await Promise.all(entryBlock.entries.map(checkProof));
+        }
+    });
+
+    it('adds entries with existing portable signature', async () => {
+        // Construct and init other and own updater with complexity
+        const complexity = 0;
+        const env = new UpdaterTestEnv();
+        env.createOther({ complexity });
+        await env.initOther();
+        env.createOwn({ complexity });
+        await env.initOwn();
+
+        const values = [
+            { _id: 'key-1', value: 1 },
+            { _id: 'key-2', value: 2 },
+            { _id: 'key-3', value: 3 }];
+
+        await env.updaterOther.add(values);
+        const valuesWithProof = env.updatesOther[0];
+
+        // ---
+        await env.updaterOwn.add(valuesWithProof);
+        // ---
+
+        // Check each value was added as an entry
+        expect(env.updaterOwn.numEntries()).toEqual(values.length);
+
+        // Generate expected entries containing value and incrementing clock
+        const expectedEntries = values.map((v, i) => ({ ...v, _clock: i + 1 }));
+
+        // Helper to check entry has valid proof
+        const checkProof = e => {
+            if (!e._proof)
+                return false;
+            const entryStripped = { ...e };
+            delete entryStripped._proof;
+            delete entryStripped._identity;
+            delete entryStripped._clock;
+            return env.cryptoOwn.verify_complex(
+                entryStripped,
+                e._proof.signature,
+                e._proof.publicKey,
+                '',
+                e._proof.nonce,
+                complexity);
+        };
+
+        // Check update was notified with expected entries including identity
+        expect(env.updatesOwn).toHaveLength(1);
+        const updateOwn = env.updatesOwn[0];
+        updateOwn.forEach((e, i) => {
+            expect(e).toHaveProperty('value', expectedEntries[i].value);
+            expect(e).toHaveProperty('_id', expectedEntries[i]._id);
+            expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
+            expect(e).toHaveProperty('_proof');
+            expect(e).toHaveProperty('_identity', { publicKey: env.publicKeyOwn });
+        });
+
+        // Check a collection was published to peers
+        expect(env.published).toHaveLength(2);
+        const collection = env.published[1];
+
+        // Check collection properties
+        expect(collection).toHaveProperty('senderPublicKey', env.publicKeyOwn);
+        expect(collection).toHaveProperty('address', env.updaterOwn.address());
+        expect(collection).toHaveProperty('addCount', values.length);
+
+        // Check the collection contains a single entry block list
+        expect(collection).toHaveProperty('entryBlockLists');
+        expect(collection.entryBlockLists).toHaveLength(1);
+        const entryBlockList = collection.entryBlockLists[0];
+
+        // Check the entry block list properties
+        expect(entryBlockList).toHaveProperty('clock', values.length);
+        expect(entryBlockList).toHaveProperty('publicKey', env.publicKeyOwn);
+        const expectedSig = await env.cryptoOwn.sign({ ...entryBlockList, signature: '' });
+        expect(entryBlockList).toHaveProperty('signature', expectedSig);
+
+        // Check the entry block list contains a single entry block CID and fetch the entry block
+        expect(entryBlockList).toHaveProperty('entryBlockCids');
+        expect(entryBlockList.entryBlockCids).toHaveLength(1);
+
+        // Try to fetch the entry block and check it exists
+        const entryBlock = await env.content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
+        expect(entryBlock).toBeTruthy();
+
+        if (entryBlock) {
+            // Check the entry block contains the expected entries
+            expect(entryBlock).toHaveProperty('entries');
+            expect(entryBlock.entries).toHaveLength(values.length);
+            entryBlock.entries.forEach((e, i) => {
+                expect(e).toBeTruthy();
+                expect(e).toHaveProperty('value', expectedEntries[i].value);
+                expect(e).toHaveProperty('_id', expectedEntries[i]._id);
+                expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
+                expect(e).toHaveProperty('_proof');
+            });
+            expect((await Promise.all(entryBlock.entries.map(checkProof))).every(x => x)).toBeTruthy();
+        }
+    });
+
+    it('adds entries with existing non-portable signature by resigning them', async () => {
+        // Construct and init other and own updater with complexity
+        const complexity = 1;
+        const env = new UpdaterTestEnv();
+        env.createOther({ complexity });
+        await env.initOther();
+        env.createOwn({ complexity });
+        await env.initOwn();
+
+        const values = [
+            { _id: 'key-1', value: 1 },
+            { _id: 'key-2', value: 2 },
+            { _id: 'key-3', value: 3 }];
+
+        await env.updaterOther.add(values);
+        const valuesWithProof = env.updatesOther[0];
+
+        // ---
+        await env.updaterOwn.add(valuesWithProof);
+        // ---
+
+        // Check each value was added as an entry
+        expect(env.updaterOwn.numEntries()).toEqual(values.length);
+
+        // Generate expected entries containing value and incrementing clock
+        const expectedEntries = values.map((v, i) => ({ ...v, _clock: i + 1 }));
+
+        // Helper to check entry has valid proof
+        const checkProof = e => {
+            if (!e._proof)
+                return false;
+            const entryStripped = { ...e };
+            delete entryStripped._proof;
+            delete entryStripped._identity;
+            return env.cryptoOwn.verify_complex(
+                entryStripped,
+                e._proof.signature,
+                env.publicKeyOwn,
+                env.updaterOwn.address(),
+                e._proof.nonce,
+                complexity);
+        };
+
+        // Check update was notified with expected entries augmented with identity
+        expect(env.updatesOwn).toHaveLength(1);
+        const updateOwn = env.updatesOwn[0];
+        updateOwn.forEach((e, i) => {
+            expect(e).toHaveProperty('value', expectedEntries[i].value);
+            expect(e).toHaveProperty('_id', expectedEntries[i]._id);
+            expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
+            expect(e).toHaveProperty('_proof');
+            expect(e).toHaveProperty('_identity', { publicKey: env.publicKeyOwn });
+        });
+
+        // Check a collection was published to peers
+        expect(env.published).toHaveLength(2);
+        const collection = env.published[1];
+
+        // Check collection properties
+        expect(collection).toHaveProperty('senderPublicKey', env.publicKeyOwn);
+        expect(collection).toHaveProperty('address', env.updaterOwn.address());
+        expect(collection).toHaveProperty('addCount', values.length);
+
+        // Check the collection contains a single entry block list
+        expect(collection).toHaveProperty('entryBlockLists');
+        expect(collection.entryBlockLists).toHaveLength(1);
+        const entryBlockList = collection.entryBlockLists[0];
+
+        // Check the entry block list properties
+        expect(entryBlockList).toHaveProperty('clock', values.length);
+        expect(entryBlockList).toHaveProperty('publicKey', env.publicKeyOwn);
+        const expectedSig = await env.cryptoOwn.sign({ ...entryBlockList, signature: '' });
+        expect(entryBlockList).toHaveProperty('signature', expectedSig);
+
+        // Check the entry block list contains a single entry block CID and fetch the entry block
+        expect(entryBlockList).toHaveProperty('entryBlockCids');
+        expect(entryBlockList.entryBlockCids).toHaveLength(1);
+
+        // Try to fetch the entry block and check it exists
+        const entryBlock = await env.content.getObject<IEntryBlock>(entryBlockList.entryBlockCids[0]);
+        expect(entryBlock).toBeTruthy();
+
+        if (entryBlock) {
+            // Check the entry block contains the expected entries
+            expect(entryBlock).toHaveProperty('entries');
+            expect(entryBlock.entries).toHaveLength(values.length);
+            entryBlock.entries.forEach((e, i) => {
+                expect(e).toBeTruthy();
+                expect(e).toHaveProperty('value', expectedEntries[i].value);
+                expect(e).toHaveProperty('_id', expectedEntries[i]._id);
+                expect(e).toHaveProperty('_clock', expectedEntries[i]._clock);
+                expect(e).toHaveProperty('_proof');
+            });
+            expect((await Promise.all(entryBlock.entries.map(checkProof))).every(x => x)).toBeTruthy();
         }
     });
 

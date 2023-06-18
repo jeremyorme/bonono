@@ -46,8 +46,10 @@ export interface ICollectionOptions {
 
     /**
      * Entry signature complexity.
-     * @remarks Required complexity of entry proof-of-work signatures. If zero, no signature is required.
-     * @defaultValue 0
+     * @remarks Required complexity of entry proof-of-work signatures.
+     * If -1, no signature is required. Signatures with complexity > 0
+     * are not portable between different collections.
+     * @defaultValue -1
      */
     complexity: number;
 
@@ -80,7 +82,7 @@ export const defaultCollectionOptions: ICollectionOptions = {
     entryBlockSize: 16,
     compactThreshold: 128,
     conflictResolution: ConflictResolution.LastWriteWins,
-    complexity: 0,
+    complexity: -1,
     lowerClock: 0,
     upperClock: -1,
     creatorPublicKey: ''
