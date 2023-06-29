@@ -61,11 +61,13 @@ Entry signature complexity.
 
 **`Remarks`**
 
-Required complexity of entry proof-of-work signatures. If zero, no signature is required.
+Required complexity of entry proof-of-work signatures.
+If -1, no signature is required. Signatures with complexity > 0
+are not portable between different collections.
 
 **`Default Value`**
 
-0
+-1
 
 ___
 
