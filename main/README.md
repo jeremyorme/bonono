@@ -12,7 +12,7 @@ Why is it called Bonono? Simple, Opple sounded too silly.
 
 ## Using Bonono
 
-- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.6.0/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
+- Put a script tag `<script type='module' src='https://unpkg.com/bonono@0.7.0/dist/bonono/bonono.esm.js'></script>` in the head of your index.html
 
 # API reference
 
