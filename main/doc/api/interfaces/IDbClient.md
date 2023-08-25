@@ -2,13 +2,12 @@
 
 # Interface: IDbClient
 
-Handles the connection to IPFS and opening databases.
+Interface for creating/opening databases.
 
 ## Table of contents
 
 ### Methods
 
-- [address](IDbClient.md#address)
 - [close](IDbClient.md#close)
 - [connect](IDbClient.md#connect)
 - [db](IDbClient.md#db)
@@ -16,25 +15,11 @@ Handles the connection to IPFS and opening databases.
 
 ## Methods
 
-### address
-
-▸ **address**(): `string`
-
-Address for connecting to IPFS.
-
-#### Returns
-
-`string`
-
-The address
-
-___
-
 ### close
 
 ▸ **close**(): `Promise`<`void`\>
 
-Close the IPFS connection.
+Close the DB client.
 
 #### Returns
 
@@ -48,7 +33,7 @@ ___
 
 ▸ **connect**(): `Promise`<`boolean`\>
 
-Connect to IPFS.
+Connect the DB client.
 
 #### Returns
 
@@ -56,13 +41,17 @@ Connect to IPFS.
 
 A promise indicating whether connection succeeded
 
+**`Remarks`**
+
+Must be called first to initialise the client
+
 ___
 
 ### db
 
 ▸ **db**(`name`): `Promise`<``null`` \| [`IDb`](IDb.md)\>
 
-Opens a named database.
+Creates/opens a named database.
 
 #### Parameters
 
@@ -84,12 +73,12 @@ ___
 
 Public key of the current user.
 
-**`Remarks`**
-
-Returns own public key after successful call to connect, otherwise null
-
 #### Returns
 
 ``null`` \| `string`
 
 Own public key string
+
+**`Remarks`**
+
+Returns own public key after successful call to connect, otherwise null

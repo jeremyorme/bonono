@@ -44,15 +44,15 @@ Iterator over all items in the collection
 
 Gets the address of this store.
 
-**`Remarks`**
-
-The store address is defined as the CID of its manifest
-
 #### Returns
 
 `string`
 
 Store address
+
+**`Remarks`**
+
+The store address is defined as the CID of its manifest
 
 ___
 
@@ -90,15 +90,15 @@ ___
 
 Unsubscribes the collection so it no longer consumes resources.
 
+#### Returns
+
+`any`
+
 **`Remarks`**
 
 This should be called prior to disposing of the collection
 reference to remove its updater from the list held by the [IDb](IDb.md)
 instance, thus enabling it to be destroyed.
-
-#### Returns
-
-`any`
 
 ___
 
@@ -107,12 +107,6 @@ ___
 ▸ **findOne**(`query`): `any`
 
 Finds and returns an object in the collection.
-
-**`Remarks`**
-
-Currently only index search is supported so the query object must be
-of the form `{_id: key}` where `key` is the same key supplied to and/or returned
-by [insertOne](IDbCollection.md#insertone) or [insertMany](IDbCollection.md#insertmany).
 
 #### Parameters
 
@@ -126,6 +120,12 @@ by [insertOne](IDbCollection.md#insertone) or [insertMany](IDbCollection.md#inse
 
 The first matching object, or null if none was found
 
+**`Remarks`**
+
+Currently only index search is supported so the query object must be
+of the form `{_id: key}` where `key` is the same key supplied to and/or returned
+by [insertOne](IDbCollection.md#insertone) or [insertMany](IDbCollection.md#insertmany).
+
 ___
 
 ### insertMany
@@ -133,11 +133,6 @@ ___
 ▸ **insertMany**(`docs`): `Promise`<`string`[]\>
 
 Inserts a multiple objects into the collection.
-
-**`Remarks`**
-
-Each object in `docs` is inserted under the key in its `_id` property.
-If the object does not contain `_id` then an auto-generated UUID is used.
 
 #### Parameters
 
@@ -151,6 +146,11 @@ If the object does not contain `_id` then an auto-generated UUID is used.
 
 Array of supplied or generated keys
 
+**`Remarks`**
+
+Each object in `docs` is inserted under the key in its `_id` property.
+If the object does not contain `_id` then an auto-generated UUID is used.
+
 ___
 
 ### insertOne
@@ -158,11 +158,6 @@ ___
 ▸ **insertOne**(`doc`): `Promise`<`string`\>
 
 Inserts a single object into the collection.
-
-**`Remarks`**
-
-The `doc` object is inserted under the key in its `_id` property.
-If `doc` does not contain `_id` then an auto-generated UUID is used.
 
 #### Parameters
 
@@ -176,6 +171,11 @@ If `doc` does not contain `_id` then an auto-generated UUID is used.
 
 The supplied or generated key
 
+**`Remarks`**
+
+The `doc` object is inserted under the key in its `_id` property.
+If `doc` does not contain `_id` then an auto-generated UUID is used.
+
 ___
 
 ### numEntries
@@ -184,16 +184,16 @@ ___
 
 Gets the number of entries.
 
-**`Remarks`**
-
-At any given point, the number of entries may exceed the number of
-keys as prior values are retained until store compaction occurs.
-
 #### Returns
 
 `number`
 
 Number of entries
+
+**`Remarks`**
+
+At any given point, the number of entries may exceed the number of
+keys as prior values are retained until store compaction occurs.
 
 ___
 
@@ -202,12 +202,6 @@ ___
 ▸ **onUpdated**(`callback`): `any`
 
 Registers a callback to be notified following an update.
-
-**`Remarks`**
-
-An update may occur due to a local modification (e.g. from a call to
-[insertOne](IDbCollection.md#insertone) or [insertMany](IDbCollection.md#insertmany)) or as a
-result of remote updates being merged into the local replica.
 
 #### Parameters
 
@@ -218,3 +212,9 @@ result of remote updates being merged into the local replica.
 #### Returns
 
 `any`
+
+**`Remarks`**
+
+An update may occur due to a local modification (e.g. from a call to
+[insertOne](IDbCollection.md#insertone) or [insertMany](IDbCollection.md#insertmany)) or as a
+result of remote updates being merged into the local replica.

@@ -27,17 +27,13 @@
         "generate": "stencil generate"
     },
     "dependencies": {
-        "@stencil/core": "^2.13.0",
-        "@stencil/react-output-target": "^0.3.1",
-        "@types/crypto-js": "^4.1.1",
+        "@noble/ciphers": "^0.2.0",
+        "@noble/curves": "^1.1.0",
+        "@stencil/core": "^4.0.5",
+        "@types/ws": "^8.5.4",
         "ajv": "^8.11.0",
         "base64-js": "^1.5.1",
-        "crypto-js": "^4.1.1",
-        "ipfs": "^0.61.0",
-        "ipfs-pubsub-peer-monitor": "^0.0.10",
-        "level": "^8.0.0",
-        "libp2p-crypto": "^0.21.2",
-        "orbit-db-io": "^1.0.2"
+        "level": "^8.0.0"
     },
     "devDependencies": {
         "@types/jest": "^27.0.3",
@@ -45,9 +41,10 @@
         "jest-cli": "^27.4.5",
         "puppeteer": "^10.0.0",
         "rollup-plugin-node-polyfills": "^0.2.1",
-        "typedoc": "^0.23.10",
+        "typedoc": "^0.24.0",
         "typedoc-plugin-markdown": "^3.13.4",
-        "typedoc-plugin-merge-modules": "^4.0.1"
+        "typedoc-plugin-merge-modules": "^4.0.1",
+        "yargs": "^17.7.2"
     },
     "license": "MIT"
 }

@@ -1,5 +1,4 @@
-export { Components, JSX, BononoDbCustomEvent } from './components';
-export { IDbClient } from './library/db/db-client';
+export { DbClient, IDbClient } from './library/db/db-client';
 export { IDb } from './library/db/db';
 export { IDbCollection } from './library/db/db-collection';
 export { ICollectionOptions } from './library/private-data/collection-options';

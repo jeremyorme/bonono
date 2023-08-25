@@ -8,19 +8,11 @@ Bonono is a simple peer-to-peer data store that provides:
 
 Why is it called Bonono? Simple, Opple sounded too silly.
 
-**DISCLAIMER**: Bonono alpha software and is built on top of [js-ipfs](https://js.ipfs.tech/).
+**DISCLAIMER**: Bonono is alpha software.
 
->"The js-ipfs library is in Alpha state. The codebase hasn't been audited by security specialists and it shouldn't be used to store, share or publish sensitive information."
+# API reference
 
-# Bonono DB component
-
-The [Bonono DB component](main/README.md) can be used directly in Stencil and no-framework applications.
-
-# Framework specific wrapper components
-
-Wrapper components wrap the Bonono DB component to be consumed by specific frameworks:
-
-* [Bonono React component](bonono-react/README.md)
+See the [Bonono API reference](main/doc/api/README.md).
 
 # Roadmap
 

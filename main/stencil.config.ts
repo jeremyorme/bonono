@@ -1,21 +1,12 @@
 import { Config } from '@stencil/core';
 import nodePolyfills from 'rollup-plugin-node-polyfills';
-import { reactOutputTarget as react } from '@stencil/react-output-target';
 
 export const config: Config = {
     namespace: 'bonono',
     outputTargets: [
-        react({
-            componentCorePackage: 'bonono',
-            proxiesFile: '../bonono-react/src/components/stencil-generated/index.ts',
-            includeDefineCustomElements: true,
-        }),
         {
             type: 'dist',
             esmLoaderPath: '../loader',
-        },
-        {
-            type: 'dist-custom-elements',
         },
         {
             type: 'docs-readme',
@@ -29,11 +20,12 @@ export const config: Config = {
         browserWaitUntil: "networkidle0",
         collectCoverage: true,
         collectCoverageFrom: ['src/**/*.ts', '!**/node_modules/**'],
-        coverageProvider: 'v8'
+        coverageProvider: 'v8',
+        setupFilesAfterEnv: ["<rootDir>/src/test/test_util/setup.ts"]
     },
     rollupPlugins: {
         after: [
-            nodePolyfills(),
+            nodePolyfills()
         ]
     }
 };
